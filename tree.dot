@@ -1,0 +1,223 @@
+digraph {
+n0 [label="Goal:"];
+n1 [label="ClassDeclarationList:"];
+n2 [label="ClassDeclaration:"];
+n3 [label="Identifier :OP"];
+n2 -> n3
+n4 [label="MethodDeclarationList:"];
+n5 [label="MethodDeclaration:"];
+n6 [label="IntegerType:"];
+n5 -> n6
+n7 [label="Identifier :arithmetic"];
+n5 -> n7
+n8 [label="VarDeclarationOrStatementList:"];
+n9 [label="VarDeclaration:"];
+n10 [label="IntegerType:"];
+n9 -> n10
+n11 [label="Identifier :b"];
+n9 -> n11
+n8 -> n9
+n12 [label="Assign:"];
+n13 [label="Identifier :b"];
+n12 -> n13
+n14 [label="IntegerLiteral:4"];
+n12 -> n14
+n8 -> n12
+n15 [label="VarDeclaration:"];
+n16 [label="IntegerType:"];
+n15 -> n16
+n17 [label="Identifier :c"];
+n15 -> n17
+n8 -> n15
+n18 [label="Assign:"];
+n19 [label="Identifier :c"];
+n18 -> n19
+n20 [label="IntegerLiteral:8"];
+n18 -> n20
+n8 -> n18
+n21 [label="VarDeclaration:"];
+n22 [label="IntegerType:"];
+n21 -> n22
+n23 [label="Identifier :ret"];
+n21 -> n23
+n8 -> n21
+n24 [label="Assign:"];
+n25 [label="Identifier :ret"];
+n24 -> n25
+n26 [label="Plus:"];
+n27 [label="Minus:"];
+n28 [label="Plus:"];
+n29 [label="IntegerLiteral:1"];
+n28 -> n29
+n30 [label="Divide:"];
+n31 [label="IntegerLiteral:18"];
+n30 -> n31
+n32 [label="IntegerLiteral:3"];
+n30 -> n32
+n28 -> n30
+n27 -> n28
+n33 [label="Identifier :b"];
+n27 -> n33
+n26 -> n27
+n34 [label="Multiply:"];
+n35 [label="Identifier :c"];
+n34 -> n35
+n36 [label="IntegerLiteral:9"];
+n34 -> n36
+n26 -> n34
+n24 -> n26
+n8 -> n24
+n37 [label="Assign:"];
+n38 [label="Identifier :ret"];
+n37 -> n38
+n39 [label="Plus:"];
+n40 [label="Minus:"];
+n41 [label="Plus:"];
+n42 [label="IntegerLiteral:1"];
+n41 -> n42
+n43 [label="Divide:"];
+n44 [label="IntegerLiteral:18"];
+n43 -> n44
+n45 [label="IntegerLiteral:3"];
+n43 -> n45
+n41 -> n43
+n40 -> n41
+n46 [label="Identifier :b"];
+n40 -> n46
+n39 -> n40
+n47 [label="Multiply:"];
+n48 [label="Identifier :c"];
+n47 -> n48
+n49 [label="IntegerLiteral:9"];
+n47 -> n49
+n39 -> n47
+n37 -> n39
+n8 -> n37
+n5 -> n8
+n50 [label="Return:return"];
+n5 -> n50
+n51 [label="Identifier :ret"];
+n5 -> n51
+n4 -> n5
+n52 [label="MethodDeclaration:"];
+n53 [label="BooleanType:"];
+n52 -> n53
+n54 [label="Identifier :relational"];
+n52 -> n54
+n55 [label="VarDeclarationOrStatementList:"];
+n56 [label="VarDeclaration:"];
+n57 [label="IntegerType:"];
+n56 -> n57
+n58 [label="Identifier :a"];
+n56 -> n58
+n55 -> n56
+n59 [label="VarDeclaration:"];
+n60 [label="IntegerType:"];
+n59 -> n60
+n61 [label="Identifier :b"];
+n59 -> n61
+n55 -> n59
+n62 [label="VarDeclaration:"];
+n63 [label="BooleanType:"];
+n62 -> n63
+n64 [label="Identifier :c"];
+n62 -> n64
+n55 -> n62
+n65 [label="VarDeclaration:"];
+n66 [label="BooleanType:"];
+n65 -> n66
+n67 [label="Identifier :d"];
+n65 -> n67
+n55 -> n65
+n68 [label="Assign:"];
+n69 [label="Identifier :a"];
+n68 -> n69
+n70 [label="IntegerLiteral:10"];
+n68 -> n70
+n55 -> n68
+n71 [label="Assign:"];
+n72 [label="Identifier :b"];
+n71 -> n72
+n73 [label="IntegerLiteral:12"];
+n71 -> n73
+n55 -> n71
+n74 [label="Assign:"];
+n75 [label="Identifier :d"];
+n74 -> n75
+n76 [label="BooleanLiteral:false"];
+n74 -> n76
+n55 -> n74
+n77 [label="Assign:"];
+n78 [label="Identifier :c"];
+n77 -> n78
+n79 [label="BooleanLiteral:true"];
+n77 -> n79
+n55 -> n77
+n80 [label="VarDeclaration:"];
+n81 [label="BooleanType:"];
+n80 -> n81
+n82 [label="Identifier :ret"];
+n80 -> n82
+n55 -> n80
+n83 [label="Assign:"];
+n84 [label="Identifier :ret"];
+n83 -> n84
+n85 [label="Or:"];
+n86 [label="And:"];
+n87 [label="LessThan:"];
+n88 [label="Identifier :a"];
+n87 -> n88
+n89 [label="Identifier :b"];
+n87 -> n89
+n86 -> n87
+n90 [label="Not:"];
+n91 [label="Identifier :d"];
+n90 -> n91
+n86 -> n90
+n85 -> n86
+n92 [label="Equal:"];
+n93 [label="Identifier :d"];
+n92 -> n93
+n94 [label="Not:"];
+n95 [label="Identifier :c"];
+n94 -> n95
+n92 -> n94
+n85 -> n92
+n83 -> n85
+n55 -> n83
+n96 [label="Assign:"];
+n97 [label="Identifier :ret"];
+n96 -> n97
+n98 [label="Or:"];
+n99 [label="And:"];
+n100 [label="LessThan:"];
+n101 [label="Identifier :a"];
+n100 -> n101
+n102 [label="Identifier :b"];
+n100 -> n102
+n99 -> n100
+n103 [label="Not:"];
+n104 [label="Identifier :d"];
+n103 -> n104
+n99 -> n103
+n98 -> n99
+n105 [label="Equal:"];
+n106 [label="Identifier :d"];
+n105 -> n106
+n107 [label="Not:"];
+n108 [label="Identifier :c"];
+n107 -> n108
+n105 -> n107
+n98 -> n105
+n96 -> n98
+n55 -> n96
+n52 -> n55
+n109 [label="Return:return"];
+n52 -> n109
+n110 [label="Identifier :ret"];
+n52 -> n110
+n4 -> n52
+n2 -> n4
+n1 -> n2
+n0 -> n1
+}
