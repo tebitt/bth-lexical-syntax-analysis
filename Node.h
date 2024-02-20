@@ -8,7 +8,10 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
+
+#include <map>
 using namespace std;
+
 class Node {
 public:
 	int id, lineno;
@@ -59,95 +62,113 @@ public:
 
 };
 
-class Record{
-	public:
-		string name;
-		string record;
-		string type;
+class Variable;
+class Method;
 
-		Record(): name(""), record(""), type(""){}
 
-		void print(){
-			cout << "name: " << name << " record: " << record << " type: " << type << endl;
-		}
-		
-		void set_name(string n){
-			name = n;
-		}
+enum class RecordType { Class, Method, Variable };
 
-		void set_type(string t){
-			type = t;
-		}
+class Record {
+public:
+    RecordType getRecordType() const {
+        if (type == "class") return RecordType::Class;
+        if (type == "method") return RecordType::Method;
+        if (type == "variable") return RecordType::Variable;
+        throw runtime_error("Unknown record type");
+    }
+
+    string getName() const {
+        return name;
+    }
+
+public:
+    string name;
+    string type;
+
+    Record() : name(""), type("") {}
+
+    virtual ~Record() {} // Making Record polymorphic for dynamic_cast
+
+    virtual void print() {
+        cout << "name: " << name << " type: " << type << endl;
+    }
+
+    void setName(const string& n) {
+        name = n;
+    }
+
+    void setType(const string& t) {
+        type = t;
+    }
 };
 
-class Class: public Record{
-	public:
-		vector<Variable*> variables;
-		vector<Method*> methods;
-		Class()
-		{
-			record = "class";
-		}
-
-		void print_variables(){
-			cout << "Variables for " << name << "class: ";
-			for(int i = 0; i < variables.size(); i++) {
-				cout << variables[i].name + " ";
-			}
-		}
-
-		void print_methods(){
-			cout << "Methods for " << name << "class: ";
-			for(int i = 0; i < methods.size(); i++) {
-				cout << methods[i].name + " ";
-			}
-		}
-
-		Method get_method(string method_name){
-			for(int i = 0; i < methods.size(); i++) {
-				if(methods[i].name == method_name) {
-					return methods[i];
-				}
-			} return new Method();
-		}
+class Variable : public Record {
+public:
+    Variable() {
+        type = "variable";;
+    }
 };
 
-class Method: public Record{
-	public:
-		map<string, Variable*> variables;
-		vector<Variable> parameters;
-		Method()
-		{
-			record = "method";
-		}
+class Method : public Record {
+public:
+    map<string, Variable*> variables;
+    vector<Variable*> parameters;
 
-		void print_parameters(){
-			cout << "Parameters for " << name << "method: ";
-			for(int i = 0; i < parameters.size(); i++)
-			{
-				cout << parameters[i].name + " ";
-			}
-			cout << endl;
-		}
+    Method() {
+        type = "method";
+    }
 
-		void print_variables(){
-			cout << "Variables for " << name << "method: ";
-			for(int i = 0; i < variables.size(); i++)
-			{
-				cout << variables[i].name + " ";
-			}
-			cout << endl;
-		}	
+    void print_parameters() {
+        cout << "Parameters for " << name << " method: ";
+        for (auto& param : parameters) {
+            cout << param->name << " ";
+        }
+        cout << endl;
+    }
+
+    void print_variables() {
+        cout << "Variables for " << name << " method: ";
+        for (auto& var : variables) {
+            cout << var.second->name << " ";
+        }
+        cout << endl;
+    }
 };
 
-class Variable: public Record{
-	public:
-		Variable()
-	{
-		record = "variable";
-	}
-};
+class Class : public Record {
+public:
+    vector<Variable*> variables;
+    vector<Method*> methods;
 
+    Class() {
+        type = "class";
+    }
+
+    Method* get_method(const string& method_name) {
+        for (auto& method : methods) {
+            if (method->name == method_name) {
+                return method;
+            }
+        }
+        return nullptr; // Method not found
+    }
+
+    void print_variables() {
+        cout << "Variables for " << name << " class: ";
+        for (auto& var : variables) {
+            cout << var->name << " ";
+        }
+        cout << endl;
+    }
+
+    void print_methods() {
+        cout << "Methods for " << name << " class: ";
+        for (auto& method : methods) {
+            cout << method->name << " ";
+        }
+        cout << endl;
+    }
+};
 class Scope {
 public:
     Scope* parent;
@@ -224,10 +245,6 @@ public:
         }
         return nullptr; // Record not found in current scope or any parent scope
     }
-};
-
-class SymbolTable{
-	public:
 };
 
 #endif
