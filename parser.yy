@@ -131,7 +131,7 @@ Type: INT LBRACKET RBRACKET { $$ = new Node("ArrayType", "int", yylineno); }
 
 Statement: LBRACE RBRACE { std::cout << "Empty Block" << std::endl; }
     | LBRACE StatementList RBRACE { $$ = new Node("Block", "", yylineno); $$->children.push_back($2); }
-    | IF LPAREN Expression RPAREN Statement ELSE Statement { $$ = new Node("If", "", yylineno); $$->children.push_back($3); $$->children.push_back($5); $$->children.push_back($7); std::cout << "If else" << std::endl;}
+    | IF LPAREN Expression RPAREN Statement ELSE Statement { $$ = new Node("IfElse", "", yylineno); $$->children.push_back($3); $$->children.push_back($5); $$->children.push_back($7); std::cout << "If else" << std::endl;}
     | IF LPAREN Expression RPAREN Statement { $$ = new Node("If", "", yylineno); $$->children.push_back($3); $$->children.push_back($5); std::cout << "If" << std::endl;}
     | WHILE LPAREN Expression RPAREN Statement { $$ = new Node("While", "", yylineno); $$->children.push_back($3); $$->children.push_back($5); std::cout << "While" << std::endl;}
     | PRINT LPAREN Expression RPAREN SEMICOLON { $$ = new Node("Print", "", yylineno); $$->children.push_back($3); std::cout << "Print" << std::endl;}

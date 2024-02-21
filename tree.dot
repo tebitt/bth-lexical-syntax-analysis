@@ -1,0 +1,223 @@
+digraph {
+n0 [label="Goal line : 37"];
+n1 [label="ClassDeclarationList line : 36"];
+n2 [label="ClassDeclaration line : 36"];
+n3 [label="Identifier :OP line : 7"];
+n2 -> n3
+n4 [label="MethodDeclarationList line : 19"];
+n5 [label="MethodDeclaration line : 19"];
+n6 [label="IntegerType line : 9"];
+n5 -> n6
+n7 [label="Identifier :arithmetic line : 9"];
+n5 -> n7
+n8 [label="VarDeclarationOrStatementList line : 10"];
+n9 [label="VarDeclaration line : 10"];
+n10 [label="IntegerType line : 10"];
+n9 -> n10
+n11 [label="Identifier :b line : 10"];
+n9 -> n11
+n8 -> n9
+n12 [label="Assign line : 11"];
+n13 [label="Identifier :b line : 11"];
+n12 -> n13
+n14 [label="IntegerLiteral:4 line : 11"];
+n12 -> n14
+n8 -> n12
+n15 [label="VarDeclaration line : 12"];
+n16 [label="IntegerType line : 12"];
+n15 -> n16
+n17 [label="Identifier :c line : 12"];
+n15 -> n17
+n8 -> n15
+n18 [label="Assign line : 13"];
+n19 [label="Identifier :c line : 13"];
+n18 -> n19
+n20 [label="IntegerLiteral:8 line : 13"];
+n18 -> n20
+n8 -> n18
+n21 [label="VarDeclaration line : 14"];
+n22 [label="IntegerType line : 14"];
+n21 -> n22
+n23 [label="Identifier :ret line : 14"];
+n21 -> n23
+n8 -> n21
+n24 [label="Assign line : 16"];
+n25 [label="Identifier :ret line : 16"];
+n24 -> n25
+n26 [label="Plus line : 16"];
+n27 [label="Minus line : 16"];
+n28 [label="Plus line : 16"];
+n29 [label="IntegerLiteral:1 line : 16"];
+n28 -> n29
+n30 [label="Divide line : 16"];
+n31 [label="IntegerLiteral:18 line : 16"];
+n30 -> n31
+n32 [label="IntegerLiteral:3 line : 16"];
+n30 -> n32
+n28 -> n30
+n27 -> n28
+n33 [label="Identifier :b line : 16"];
+n27 -> n33
+n26 -> n27
+n34 [label="Multiply line : 16"];
+n35 [label="Identifier :c line : 16"];
+n34 -> n35
+n36 [label="IntegerLiteral:9 line : 16"];
+n34 -> n36
+n26 -> n34
+n24 -> n26
+n8 -> n24
+n37 [label="Assign line : 17"];
+n38 [label="Identifier :ret line : 17"];
+n37 -> n38
+n39 [label="Plus line : 17"];
+n40 [label="Minus line : 17"];
+n41 [label="Plus line : 17"];
+n42 [label="IntegerLiteral:1 line : 17"];
+n41 -> n42
+n43 [label="Divide line : 17"];
+n44 [label="IntegerLiteral:18 line : 17"];
+n43 -> n44
+n45 [label="IntegerLiteral:3 line : 17"];
+n43 -> n45
+n41 -> n43
+n40 -> n41
+n46 [label="Identifier :b line : 17"];
+n40 -> n46
+n39 -> n40
+n47 [label="Multiply line : 17"];
+n48 [label="Identifier :c line : 17"];
+n47 -> n48
+n49 [label="IntegerLiteral:9 line : 17"];
+n47 -> n49
+n39 -> n47
+n37 -> n39
+n8 -> n37
+n5 -> n8
+n50 [label="Return:return line : 19"];
+n5 -> n50
+n51 [label="Identifier :ret line : 18"];
+n5 -> n51
+n4 -> n5
+n52 [label="MethodDeclaration line : 35"];
+n53 [label="BooleanType line : 21"];
+n52 -> n53
+n54 [label="Identifier :relational line : 21"];
+n52 -> n54
+n55 [label="VarDeclarationOrStatementList line : 22"];
+n56 [label="VarDeclaration line : 22"];
+n57 [label="IntegerType line : 22"];
+n56 -> n57
+n58 [label="Identifier :a line : 22"];
+n56 -> n58
+n55 -> n56
+n59 [label="VarDeclaration line : 23"];
+n60 [label="IntegerType line : 23"];
+n59 -> n60
+n61 [label="Identifier :b line : 23"];
+n59 -> n61
+n55 -> n59
+n62 [label="VarDeclaration line : 24"];
+n63 [label="BooleanType line : 24"];
+n62 -> n63
+n64 [label="Identifier :c line : 24"];
+n62 -> n64
+n55 -> n62
+n65 [label="VarDeclaration line : 25"];
+n66 [label="BooleanType line : 25"];
+n65 -> n66
+n67 [label="Identifier :d line : 25"];
+n65 -> n67
+n55 -> n65
+n68 [label="Assign line : 26"];
+n69 [label="Identifier :a line : 26"];
+n68 -> n69
+n70 [label="IntegerLiteral:10 line : 26"];
+n68 -> n70
+n55 -> n68
+n71 [label="Assign line : 27"];
+n72 [label="Identifier :b line : 27"];
+n71 -> n72
+n73 [label="IntegerLiteral:12 line : 27"];
+n71 -> n73
+n55 -> n71
+n74 [label="Assign line : 28"];
+n75 [label="Identifier :d line : 28"];
+n74 -> n75
+n76 [label="BooleanLiteral:false line : 28"];
+n74 -> n76
+n55 -> n74
+n77 [label="Assign line : 29"];
+n78 [label="Identifier :c line : 29"];
+n77 -> n78
+n79 [label="BooleanLiteral:true line : 29"];
+n77 -> n79
+n55 -> n77
+n80 [label="VarDeclaration line : 30"];
+n81 [label="BooleanType line : 30"];
+n80 -> n81
+n82 [label="Identifier :ret line : 30"];
+n80 -> n82
+n55 -> n80
+n83 [label="Assign line : 32"];
+n84 [label="Identifier :ret line : 32"];
+n83 -> n84
+n85 [label="Or line : 32"];
+n86 [label="And line : 32"];
+n87 [label="LessThan line : 32"];
+n88 [label="Identifier :a line : 32"];
+n87 -> n88
+n89 [label="Identifier :b line : 32"];
+n87 -> n89
+n86 -> n87
+n90 [label="Not line : 32"];
+n91 [label="Identifier :d line : 32"];
+n90 -> n91
+n86 -> n90
+n85 -> n86
+n92 [label="Equal line : 32"];
+n93 [label="Identifier :d line : 32"];
+n92 -> n93
+n94 [label="Not line : 32"];
+n95 [label="Identifier :c line : 32"];
+n94 -> n95
+n92 -> n94
+n85 -> n92
+n83 -> n85
+n55 -> n83
+n96 [label="Assign line : 33"];
+n97 [label="Identifier :ret line : 33"];
+n96 -> n97
+n98 [label="Or line : 33"];
+n99 [label="And line : 33"];
+n100 [label="LessThan line : 33"];
+n101 [label="Identifier :a line : 33"];
+n100 -> n101
+n102 [label="Identifier :b line : 33"];
+n100 -> n102
+n99 -> n100
+n103 [label="Not line : 33"];
+n104 [label="Identifier :d line : 33"];
+n103 -> n104
+n99 -> n103
+n98 -> n99
+n105 [label="Equal line : 33"];
+n106 [label="Identifier :d line : 33"];
+n105 -> n106
+n107 [label="Not line : 33"];
+n108 [label="Identifier :c line : 33"];
+n107 -> n108
+n105 -> n107
+n98 -> n105
+n96 -> n98
+n55 -> n96
+n52 -> n55
+n109 [label="Return:return line : 35"];
+n52 -> n109
+n110 [label="Identifier :ret line : 34"];
+n52 -> n110
+n4 -> n52
+n2 -> n4
+n1 -> n2
+n0 -> n1
+}
