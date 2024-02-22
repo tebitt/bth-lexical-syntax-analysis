@@ -38,8 +38,8 @@ class MyClass {
         return this.yxFunc();
     }
 
-    public int swFunc() { // @error - semantic (invalid return type)
-        return z[this.yzFunc()];
+    public int swFunc() { 
+        return z[this.yzFunc()]; // @error - semantic (invalid return type)
     }
 
 }

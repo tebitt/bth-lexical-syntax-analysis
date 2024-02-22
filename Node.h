@@ -10,7 +10,6 @@
 #include <map>
 #include <string>
 #include <vector>
-#define DEBUG(x) do { std::cerr << x; } while (0)
 
 using namespace std;
 
@@ -26,6 +25,10 @@ public:
 		type = "uninitialised";
 		value = "uninitialised";
 	} // Bison needs this.
+
+    string getType() { return type; }
+    string getValue() { return value; }
+    int getLineNo() { return lineno; }
 
     void print_tree(int depth = 0)
 	{
@@ -106,14 +109,14 @@ public:
 class Method : public Record {
 public:
     map<string, Variable*> variables;
-    vector<Variable*> parameters;
+    vector<string> parameters;
+    int parametersCount = 0;
 
     Method() { record = "method"; }
 
     void printParameters() const {
-        cout << "Parameters for " << name << " method: ";
         for (const auto& param : parameters) {
-            cout << param->name << " ";
+            cout << param << " ";
         }
         cout << endl;
     }
@@ -129,34 +132,26 @@ public:
 
 class Class : public Record {
 public:
-    vector<Variable*> variables;
-    vector<Method*> methods;
+    map<string, Variable*> variables;
+    map<string, Method*> methods;
 
     Class() { record = "class"; }
 
-    Method* getMethod(string methodName) {
-        for (const auto& method : methods) {
-            if (method->name == methodName) {
-                return method;
-            }
+    Method* getMethod(string key) {
+        auto iter = methods.find(key);
+        if (iter != methods.end()) {
+            return iter->second;
+        } else {
+            return new Method();
         }
-        return new Method();
     }
 
     void printVariables() const {
         cout << "Variables for " << name << " class: ";
-        for (const auto& var : variables) {
-            cout << var->name << " ";
-        }
-        cout << endl;
     }
 
     void printMethods() const {
         cout << "Methods for " << name << " class: ";
-        for (const auto& method : methods) {
-            cout << method->name << " ";
-        }
-        cout << endl;
     }
 };
 
@@ -185,17 +180,16 @@ public:
     }
 
     Scope* getChildScope(int id = -1) {
-        if (id == -1 && !children.empty()) {
+        if (id == -1) {
             return children.back();
-        }
-
-        for (const auto& child : children) {
-            if (child->id == id) {
-                return child;
+        } else {
+            auto it = children.begin();
+            for (int i = 0; i < id; i++) {
+                it++;
             }
+            return *it;
         }
-
-        return nullptr;
+        return children.back();
     }
 
 
@@ -209,7 +203,19 @@ public:
         }
     }
 
-    Record* findRecord(const string& key) const {
+    string findRecord(string key) {
+        if (classes.find(key) != classes.end()) {
+            return "class";
+        } else if (methods.find(key) != methods.end()) {
+            return "method";
+        } else if (variables.find(key) != variables.end()) {
+            return "variable";
+        } else {
+            return "null";
+        }
+    }
+
+    Record* getRecordFromName(const string& key) const {
         if (classes.find(key) != classes.end()) {
             return classes.at(key);
         } else if (methods.find(key) != methods.end()) {
@@ -230,7 +236,9 @@ public:
     bool CorrectSemantic = true;
     Class* CurrentClass;
     Method* CurrentMethod;
-
+    int lineno, classDepth, methodDepth;
+    string priorRecordType;
+    
     SymbolTable() {
         currentScope = new Scope(nextScopeId++, "GoalName", "Goal", "void");
         rootScope = currentScope;
@@ -243,86 +251,113 @@ public:
         int lineno = node->lineno;
         list<Node*> children = node->children;
         Node* child = *children.begin();
-        cout << "ID: " << id << " Type: " << type << " Value: " << value << " LineNo: "<< lineno << endl;
 
+        // cout << "ID: " << id << " Type: " << type << " Value: " << value << " LineNo: "<< lineno << endl;
         if (node->type == "ClassDeclaration" || node->type == "MainClass") { ClassDeclaration(child); } 
-        else if (node->type == "MethodDeclaration") { MethodDeclaration(child); }
+        else if (node->type == "MethodDeclaration") { MethodDeclaration(node); }
         else if (node->type == "VarDeclaration") { VarDeclaration(child); } 
         else if (node->type == "Expression" || node->type == "Statement") { ExpressionOrStatement(node); }
 
-        for (Node* &ch : node->children) { main(ch); }
+        for (Node* &ch : node->children) { main(ch); } 
 
         if (type == "ClassDeclaration" || type == "MainClass" || type == "MethodDeclaration") { exitCurrentScope(); }
     }
 
     void ClassDeclaration(Node* node) {
-        Class* newClass = new Class();
-        newClass->setName(node->value);
-        newClass->setType(node->value);
-        currentScope->addRecord(newClass);
-        AddNewToScope(newClass);
-        
+        priorRecordType = "class";
+        lineno = node->lineno;
+        CurrentClass = new Class();
+        CurrentClass->setName(node->value);
+        CurrentClass->setType(node->value);
+        AddRecordToCurrentScope(CurrentClass);
+        AddNewToScope(CurrentClass);
+
         Variable* newVariable = new Variable();
         newVariable->name = "this";
-        newVariable->type = newClass->name;
-        currentScope->addRecord(newVariable);
+        newVariable->setType(currentScope->name);
+        AddRecordToCurrentScope(newVariable);
     }
 
     void MethodDeclaration(Node* node) {
+        priorRecordType = "method";
+        auto child = node->children.begin();
+        string value = (*child)->value;
+        string type = (*child)->type;
+        lineno = (*child)->lineno;
+
+        CurrentMethod = new Method();
+        CurrentMethod->setType(type);
+        CurrentMethod->setName((*++child)->value);
+        CurrentClass->methods[CurrentMethod->name] = CurrentMethod;
+        AddRecordToCurrentScope(CurrentMethod);
+        AddNewToScope(CurrentMethod);
+
+        child++;
+
+        if (child != node->children.end()) {
+            for (auto i = (*child)->children.begin(); i != (*child)->children.end(); ++i) {
+                if (*i) {
+                    VarDeclaration(*i);
+                    if (!(*i)->children.empty()) {
+                        auto ch = (*i)->children.begin();
+                        if (ch != (*i)->children.end() && *ch) {
+                            string childType = (*ch)->type;
+                            CurrentMethod->parameters.push_back(childType);
+                            CurrentMethod->parametersCount++;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+    void VarDeclaration(Node* node) {
+        Variable* newVariable = new Variable();
+        auto child = node->children.begin();
+        auto Check = node->children.begin();
+        lineno = node->lineno;
+        if (!(++Check == node->children.end())) {
+            newVariable->setType((*child)->type);
+            newVariable->setName((*++child)->value);
+            if (priorRecordType == "method") {
+                CurrentMethod->variables[newVariable->name] = newVariable;
+            } else if (priorRecordType == "class") {
+                CurrentClass->variables[newVariable->name] = newVariable;
+            }
+            AddRecordToCurrentScope(newVariable);
+        } else {
+            return;
+        }
+    }
+
+    void ExpressionOrStatement(Node* node) {
         string type = node->type;
         string value = node->value;
         int id = node->id;
         list<Node*> children = node->children;
-        cout << children.size() << endl;
 
-        Method* newMethod = new Method();
-        newMethod->setType((*node->children.begin())->children.front()->value);
-        newMethod->setName((*++node->children.begin())->children.front()->value);
-        cout << "line1" << endl;
-        CurrentClass->methods.push_back(newMethod);
-        cout << "line2" << endl;
-        currentScope->addRecord(newMethod);
-        AddNewToScope(newMethod);
-
-        for (auto paramNode : (*++node->children.begin())->children) {
-            VarDeclaration(paramNode->children.front());
-            CurrentMethod->parameters.push_back(dynamic_cast<Variable*>(currentScope->variables[paramNode->children.front()->children.back()->value]));
-        }
-    }
-
-    void VarDeclaration(Node* node) {
-    Variable* newVariable = new Variable();
-    auto child = node->children.begin();
-    newVariable->setName((*child)->value);
-    newVariable->setType((*child)->type);
-    currentScope->addRecord(newVariable);
-}
-
-    void ExpressionOrStatement(Node* node) {
-    string type = node->type;
-    string value = node->value;
-    int id = node->id;
-    list<Node*> children = node->children;
-
-    // Debugging output
-    std::cout << "Debugging ExpressionOrStatement:\n";
-    std::cout << "Type: " << type << "\n";
-    std::cout << "Value: " << value << "\n";
-    std::cout << "ID: " << id << "\n";
-    std::cout << "Children count: " << children.size() << "\n";
-
-    if (type == "Identifier"){
-        if (currentScope->findRecord(value) == nullptr) {
-            reportSemanticError("Undeclared variable: " + value);
-        }
-        if (!(value == "NewIdentifier") || value == "Call")
-            for (Node* &child : children) {
-                // Debugging output for each child
-                std::cout << "Processing child with ID: " << child->id << "\n";
-                ExpressionOrStatement(child);
+        if (type == "Identifier"){
+            if (currentScope->findRecord(value) == "null") {
+                reportSemanticError("Undeclared variable: " + value);
             }
+            if (!(value == "NewIdentifier") || value == "Call")
+                for (Node* &child : children) {
+                    std::cout << "Processing child with ID: " << child->id << "\n";
+                    ExpressionOrStatement(child);
+            }
+        }
     }
-}
+
+    void AddRecordToCurrentScope(Record* rec){
+        cout << "Adding record to current scope: " << rec->name << " Type: " << rec->type << endl;
+        cout << "Current Scope: " << currentScope->findRecord(rec->name) << endl;
+        if ((currentScope->findRecord(rec->name)) != rec->record) {
+            currentScope->addRecord(rec);
+        } else {
+            reportSemanticError("Duplicate record: " + rec->name);
+        }
+    }
 
     void AddNewToScope(Record* rec) {
         Scope* newScope = new Scope(nextScopeId++, rec->name, rec->record, rec->type);
@@ -332,25 +367,20 @@ public:
 
     }
 
+    void enterScope(int i = -1) {
+        currentScope = currentScope->getChildScope(i);
+    }
+
     void exitCurrentScope() {
         if (currentScope->parent) {
             currentScope = currentScope->parent;
         }
-        DEBUG("exitCurrentScope: Exiting current scope\n");
-
     }
 
-    void addRecord(Record* rec) {
-        if (currentScope->findRecord(rec->name)) {
-            reportSemanticError("Duplicate record: " + rec->name);
-        } else {
-            currentScope->addRecord(rec);
-        }
-        DEBUG("addRecord: " << rec->getName() << "\n");
-    }
-
-    void Semantic_Traversal(Node* root) {
+    void Semantic_Init(Node* root) {
         currentScope = rootScope;
+        classDepth = 0;
+        methodDepth = 0;
         Semantic_Analysis(root);
     }
 
@@ -358,23 +388,23 @@ public:
         string type = node->type;
         string value = node->value;
         int id = node->id;
+        lineno = node->lineno;
         list<Node*> children = node->children;
 
-        if (type == "MethodDeclaration") {
-            auto iter = children.begin();
-            string methodName = (*(++iter))->value;
-        } else if ((type == "ClassDeclaration") || (type == "MainClass")) {
-            auto iter = children.begin();
-            string className = (*iter)->value;
+        cout << "ID: " << id << " Type: " << type << " Value: " << value << " LineNo: "<< lineno << endl;
+        if (type == "ClassDeclaration" || type == "MainClass") {
+            enterScope(classDepth++);
+        } else if (type == "MethodDeclaration") {
+            enterScope(methodDepth++);
         } else if (type == "VarDeclaration") {
-            auto iter = children.begin();
-            string varType = (*iter)->value;
+            auto child = children.begin();
+            string varType = (*child)->type;
             if(!(varType == "BooleanType" || varType == "IntegerType" || varType == "ArrayType")) {
                 if(CheckForClass(varType)) {
                     reportSemanticError("Identifier is not a Class");
                 }
             }
-        } else if (type == "Return") { Semantic_Analysis_Return(*children.begin());
+        } else if (type == "Return") { Semantic_Analysis_Return(node);
         } else if (type == "Statement") {
             if (value == "Assign") { Semantic_Analysis_Assign(*children.begin()); }
             else if (value == "IfElse") { Semantic_Analysis_IfElse(*children.begin()); }
@@ -384,7 +414,10 @@ public:
         } for (auto i = children.begin(); i != children.end(); i++) {
             Semantic_Analysis(*i);
         }
-        if ((type == "ClassDeclaration") || (type == "MainClass") || (type == "MethodDeclaration")) {
+        if ((type == "ClassDeclaration") || (type == "MainClass"))  {
+            exitCurrentScope();
+            methodDepth = 0;
+        } else if (type == "MethodDeclaration") {
             exitCurrentScope();
         }
     }
@@ -394,7 +427,10 @@ public:
         string value = node->value;
         string returnType;
 
+        lineno = node->lineno;
+
         returnType = Semantic_Analysis_Expression(*node->children.begin());
+
         if (returnType != CurrentMethod->type) {
             reportSemanticError("Return type does not match method type");
         }
@@ -405,7 +441,9 @@ public:
         string value = node->value;
         Record rec;
         string type_prior, type_post;
-        
+
+        lineno = node->lineno;
+
         if (type=="Identifier") {
             type_prior = IdentifierReturnType(value);
             type_post = Semantic_Analysis_Expression(++node);
@@ -435,6 +473,8 @@ public:
         string type = node->type;
         string value = node->value;
         string type_prior, type_post;
+
+        lineno = node->lineno;
 
         if (type == "Identifier") {
             return IdentifierReturnType(value);
@@ -508,26 +548,50 @@ public:
             } return childValue;
         } else if (value == "Call") {
             auto child = node->children.begin();
-            string methodName = (*child)->value;
-            string className = Semantic_Analysis_Expression(*(++child));
-            if (!CheckForClass(className)) {
-                reportSemanticError("Identifier is not a Class");
+            string ObjectCalled = Semantic_Analysis_Expression(*child);
+            string MethodUsed = (*(*(++child))->children.begin())->value;
+            string MethodType = (*(*(child))->children.begin())->type;
+
+            if (MethodType != "Identifier") {
+                reportSemanticError("Object called is not an identifier");
+                return "False";
             }
-            if (className != CurrentClass->name) {
-                if (CurrentClass->getMethod(methodName) == nullptr) {
-                    reportSemanticError("Method not found");
+            //check if object is a class
+            if (!CheckForClass(ObjectCalled)) {
+                reportSemanticError("Object called is not a class");
+                return "False";
+            }
+            //check if method is in the class
+            if (CurrentClass->methods.find(MethodUsed) == CurrentClass->methods.end()) {
+                reportSemanticError("Method is not in the class");
+                return "False";
+            }
+            //check parameter
+            auto method = CurrentClass->methods.find(MethodUsed);
+            if (method->second->parametersCount != (*child)->children.size() - 1) {
+                reportSemanticError("Invalid number of parameters");
+                return "False";
+            }
+            //check each parameter
+            auto iter = (*child)->children.begin();
+            for (int i = 0; i < method->second->parametersCount; i++) {
+                string paramType = Semantic_Analysis_Expression(*(++iter));
+                if (paramType != method->second->parameters[i]) {
+                    reportSemanticError("Invalid parameter type");
+                    //return the type of the method
+                    return method->second->type;
                 }
-            } return CurrentClass->getMethod(methodName)->type;
-        } else {
-            reportSemanticError("Invalid expression");
+            } return method->second->type; 
         }
-        return nullptr;
+        return "False";
     }
 
     void Semantic_Analysis_If(Node* node) {
         string type = node->type;
         string value = node->value;
-        
+
+        lineno = node->lineno;
+
         if (type == "Expression" || type == "Identifier") {
             string condType = Semantic_Analysis_Expression(node);
             if (condType == "BooleanType") {
@@ -537,17 +601,14 @@ public:
                 } else {
                     reportSemanticError("Invalid statement");
                 }
-            } else {
-                reportSemanticError("Invalid expression");
-            }
-        } else {
-            reportSemanticError("Invalid if statement");
-        }
+            } 
+        } 
     }
 
     void Semantic_Analysis_IfElse(Node* node) {
         string type = node->type;
         string value = node->value;
+        lineno = node->lineno;
         
         if (type == "Expression" || type == "Identifier") {
             string condType = Semantic_Analysis_Expression(node);
@@ -574,6 +635,7 @@ public:
     void Semantic_Analysis_While(Node* node) {
         string type = node->type;
         string value = node->value;
+        lineno = node->lineno;
         
         if (type == "Expression" || type == "Identifier") {
             string condType = Semantic_Analysis_Expression(node);
@@ -595,6 +657,7 @@ public:
     void Semantic_Analysis_Print(Node* node) {
         string type = node->type;
         string value = node->value;
+        lineno = node->lineno;
         
         if ( type == "IntegerLiteral" || type == "Expression" || type == "Identifier") {
             string printType = Semantic_Analysis_Expression(node);
@@ -605,26 +668,23 @@ public:
 
     string IdentifierReturnType(string name) {
         Record* rec;
-        rec = currentScope->findRecord(name);
+        rec = currentScope->getRecordFromName(name);
         if (rec == nullptr) {
-            reportSemanticError("Undeclared variable: " + name);
             return "";
         }
         return rec->type;
     }
-
+    
     bool CheckForClass(string name) {
-        if (currentScope->findRecord(name) == nullptr) {
+        if (currentScope->findRecord(name)!= "class") {
             return false;
         }
         return true;
     }
 
-    void reportSemanticError(const string& message) {
-        cerr << "Semantic Error: " << message << endl;
+    void reportSemanticError(string message) {
+		cerr << "\t@error at line " << lineno << ". " << message << endl;
         CorrectSemantic = false;
-        DEBUG("reportSemanticError: " << message << "\n");
-    
     }
 
     void generate_tree()

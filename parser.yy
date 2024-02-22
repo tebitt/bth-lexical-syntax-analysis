@@ -19,7 +19,7 @@
 }
 
 // definition of set of tokens. All tokens are of type string
-%token <std::string> THIS NOT CLASS PUBLIC STATIC VOID MAIN STRING IF ELSE WHILE RETURN NEW TRUE FALSE PRINT INT BOOLEAN IDENTIFIER INTEGER_LITERAL LBRACE RBRACE LPAREN RPAREN LBRACKET RBRACKET SEMICOLON COMMA DOT ASSIGN PLUS MINUS MULT DIV AND OR LT GT EQ LENGTH
+%token <std::string> THIS NOT CLASS PUBLIC STATIC VOID MAIN STRING IF ELSE WHILE NEW TRUE FALSE PRINT INT BOOLEAN IDENTIFIER RETURN INTEGER_LITERAL LBRACE RBRACE LPAREN RPAREN LBRACKET RBRACKET SEMICOLON COMMA DOT ASSIGN PLUS MINUS MULT DIV AND OR LT GT EQ LENGTH
 %token END 0 "end of file"
 
 // Operator precedence (if needed)
@@ -32,7 +32,7 @@
 
 
 // Type definitions for non-terminals
-%type <Node *> Goal MainClass ClassDeclaration VarDeclaration MethodDeclaration Type Statement Expression Identifier ClassDeclarationList StatementList VarDeclarationList MethodDeclarationList TypeIdentList ExpressionList VarDeclarationOrStatementList
+%type <Node *> Goal MainClass ClassDeclaration VarDeclaration MethodDeclaration Type Statement Expression Identifier ClassDeclarationList StatementList VarDeclarationList MethodDeclarationList TypeIdentList ExpressionList VarDeclarationOrStatementList Return ReturnType
 
 %%
 
@@ -87,40 +87,36 @@ VarDeclaration: Type Identifier SEMICOLON {
     std::cout << "Var Declaration" << std::endl;
 };
 
-MethodDeclaration: PUBLIC Type Identifier LPAREN TypeIdentList RPAREN LBRACE VarDeclarationOrStatementList RETURN Expression SEMICOLON RBRACE {
+MethodDeclaration: PUBLIC ReturnType Identifier LPAREN TypeIdentList RPAREN LBRACE VarDeclarationOrStatementList Return RBRACE {
     $$ = new Node("MethodDeclaration", "", yylineno);
-    $$->children.push_back($2); 
+    $$->children.push_back($2);
     $$->children.push_back($3);
     $$->children.push_back($5); 
     $$->children.push_back($8);
-    $$->children.push_back(new Node("Return", $9, yylineno));
-    $$->children.push_back($10); 
+    $$->children.push_back($9); 
     std::cout << "Method Declaration" << std::endl;
 }; 
-    | PUBLIC Type Identifier LPAREN TypeIdentList RPAREN LBRACE RETURN Expression SEMICOLON RBRACE {
+    | PUBLIC ReturnType Identifier LPAREN TypeIdentList RPAREN LBRACE Return RBRACE {
     $$ = new Node("MethodDeclaration", "", yylineno);
     $$->children.push_back($2);
     $$->children.push_back($3);
     $$->children.push_back($5);
-    $$->children.push_back(new Node("Return", $8, yylineno));
-    $$->children.push_back($9);
+    $$->children.push_back($8);
     std::cout << "Method Declaration w/o VarOrState Declaration" << std::endl;
 };
-    | PUBLIC Type Identifier LPAREN RPAREN LBRACE VarDeclarationOrStatementList RETURN Expression SEMICOLON RBRACE {
+    | PUBLIC ReturnType Identifier LPAREN RPAREN LBRACE VarDeclarationOrStatementList Return RBRACE {
+    $$ = new Node("MethodDeclaration", "", yylineno );
+    $$->children.push_back($2);
+    $$->children.push_back($3);
+    $$->children.push_back($7);
+    $$->children.push_back($8);
+    std::cout << "Method Declaration w/o TypeIdent" << std::endl;
+};
+    | PUBLIC ReturnType Identifier LPAREN RPAREN LBRACE Return RBRACE {
     $$ = new Node("MethodDeclaration", "", yylineno);
     $$->children.push_back($2);
     $$->children.push_back($3);
     $$->children.push_back($7);
-    $$->children.push_back(new Node("Return", $8, yylineno));
-    $$->children.push_back($9);
-    std::cout << "Method Declaration w/o TypeIdent" << std::endl;
-};
-    | PUBLIC Type Identifier LPAREN RPAREN LBRACE RETURN Expression SEMICOLON RBRACE {
-    $$ = new Node("MethodDeclaration", "", yylineno);
-    $$->children.push_back($2);
-    $$->children.push_back($3);
-    $$->children.push_back(new Node("Return", $7, yylineno));
-    $$->children.push_back($8);
     std::cout << "Method Declaration w/o TypeIdent & VarOrState Declaration" << std::endl;
 };
 
@@ -237,6 +233,30 @@ VarDeclarationOrStatementList: VarDeclaration {
     $$ = $1;
     $$->children.push_back($2);
     std::cout << "VarOrState Variable Recursion" << std::endl;
+};
+
+ReturnType: Type{
+    $$ = $1;
+    std::cout << "Return Type" << std::endl;
+};
+    | VOID {
+    $$ = new Node("Void", "", yylineno);
+    std::cout << "Void Return Type" << std::endl;
+};
+
+Return: RETURN ReturnType SEMICOLON{
+    $$ = new Node("Return", "", yylineno);
+    $$->children.push_back($2);
+    std::cout << "Return" << std::endl;
+};
+    | RETURN Expression SEMICOLON {
+    $$ = new Node("Return", "", yylineno);
+    $$->children.push_back($2);
+    std::cout << "Return w/ Expression" << std::endl;
+};
+    | RETURN SEMICOLON {
+    $$ = new Node("Return", "", yylineno);
+    std::cout << "Return w/o Expression or Return Type" << std::endl;
 };
 
 ExpressionList: Expression {

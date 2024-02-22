@@ -68,12 +68,7 @@ int main(int argc, char **argv)
 				st.generate_tree();
 
 				cout << "Running semantic checking"<< endl;
-				st.Semantic_Traversal(root);
-
-				if (!st.CorrectSemantic){
-					errCode = errCodes::SEMANTIC_ERROR;
-				}
-				
+				st.Semantic_Init(root);	
 
 			}
 			catch (...)
