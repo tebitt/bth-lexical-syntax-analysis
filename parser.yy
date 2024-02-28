@@ -48,10 +48,13 @@ Goal: MainClass END {
 };
     
 
-MainClass: PUBLIC CLASS Identifier LBRACE ClassConditional RBRACE {
+MainClass: PUBLIC CLASS Identifier LBRACE PUBLIC STATIC ReturnType Identifier LPAREN TypeIdentList RPAREN LBRACE StatementList RBRACE RBRACE {
     $$ = new Node("MainClassDeclaration", "", yylineno);
     $$->children.push_back($3); 
-    $$->children.push_back($5);
+    $$->children.push_back($7);
+    $$->children.push_back($8);
+    $$->children.push_back($10);
+    $$->children.push_back($13);
     std::cout << "Main Class" << std::endl;
 };  
 
@@ -90,7 +93,7 @@ ClassConditional: VarDeclarationList {
 VarDeclaration: Type Identifier SEMICOLON {
     $$ = new Node("VarDeclaration", "", yylineno);
     $$->children.push_back($1); 
-    $$->children.push_back($2); 
+    $$->children.push_back($2);
     std::cout << "Var Declaration" << std::endl;
 };
 
@@ -126,19 +129,12 @@ MethodDeclaration: PUBLIC ReturnType Identifier LPAREN TypeIdentList RPAREN LBRA
     $$->children.push_back($7);
     std::cout << "Method Declaration w/o TypeIdent & VarOrState Declaration" << std::endl;
 };
-    | PUBLIC STATIC ReturnType Identifier LPAREN TypeIdentList RPAREN LBRACE StatementList RBRACE {
-    $$ = new Node("MethodDeclaration", "", yylineno);
-    $$->children.push_back($3);
-    $$->children.push_back($4);
-    $$->children.push_back($6);
-    $$->children.push_back($9);
-    std::cout << "Main Method Declaration" << std::endl;
-};
 
 Type: INT LBRACKET RBRACKET { $$ = new Node("Type", "IntArray", yylineno); };
     | BOOLEAN { $$ = new Node("Type", "Boolean", yylineno); };
     | INT { $$ = new Node("Type", "Int", yylineno); };
     | Identifier { $$ = $1; };
+    | STRING { $$ = new Node("Type", "String", yylineno); };
     | STRING LBRACKET RBRACKET { $$ = new Node("Type", "StringArray", yylineno); };
 
 Statement: LBRACE RBRACE { std::cout << "Empty Block" << std::endl; };
@@ -148,7 +144,14 @@ Statement: LBRACE RBRACE { std::cout << "Empty Block" << std::endl; };
     | WHILE LPAREN Expression RPAREN Statement { $$ = new Node("Statement", "While", yylineno); $$->children.push_back($3); $$->children.push_back($5); std::cout << "While" << std::endl; };
     | PRINT LPAREN Expression RPAREN SEMICOLON { $$ = new Node("Statement", "Print", yylineno); $$->children.push_back($3); std::cout << "Print" << std::endl; };
     | Identifier ASSIGN Expression SEMICOLON { $$ = new Node("Statement", "Assign", yylineno); $$->children.push_back($1); $$->children.push_back($3); std::cout << "Assign" << std::endl; };
-    | Identifier LBRACKET Expression RBRACKET ASSIGN Expression SEMICOLON { $$ = new Node("Statement", "ArrayAssign", yylineno); $$->children.push_back($1); $$->children.push_back($3); $$->children.push_back($6); std::cout << "Array Assign" << std::endl; };
+    | Identifier LBRACKET Expression RBRACKET ASSIGN Expression SEMICOLON { 
+        $$ = new Node("Statement", "Assign", yylineno); 
+        Node* Index = new Node("ArrayIndex", "", yylineno);
+        $$->children.push_back(Index);
+        $$->children.push_back($6);
+        Index->children.push_back($1);
+        Index->children.push_back($3); 
+        std::cout << "Array Assign" << std::endl; };
 
 Expression: Expression PLUS Expression { $$ = new Node("Expression", "Plus", yylineno); $$->children.push_back($1); $$->children.push_back($3); std::cout << "Plus" << std::endl; };
     | Expression MINUS Expression { $$ = new Node("Expression", "Minus", yylineno); $$->children.push_back($1); $$->children.push_back($3); std::cout << "Minus" << std::endl; };
@@ -159,20 +162,26 @@ Expression: Expression PLUS Expression { $$ = new Node("Expression", "Plus", yyl
     | Expression LT Expression { $$ = new Node("Expression", "LessThan", yylineno); $$->children.push_back($1); $$->children.push_back($3); std::cout << "Less Than" << std::endl;}
     | Expression GT Expression { $$ = new Node("Expression", "GreaterThan", yylineno); $$->children.push_back($1); $$->children.push_back($3); std::cout << "Greater Than" << std::endl;}
     | Expression EQ Expression { $$ = new Node("Expression", "Equal", yylineno); $$->children.push_back($1); $$->children.push_back($3); std::cout << "Equal" << std::endl; }; 
-    | Expression LBRACKET Expression RBRACKET { $$ = new Node("Expression", "ArrayLookup", yylineno); $$->children.push_back($1); $$->children.push_back($3); std::cout << "Array Lookup" << std::endl; };
+    | Expression LBRACKET Expression RBRACKET { $$ = new Node("Expression", "ArrayIndex", yylineno); $$->children.push_back($1); $$->children.push_back($3); std::cout << "Array Lookup" << std::endl; };
     | Expression DOT LENGTH { $$ = new Node("Expression", "ArrayLength", yylineno); $$->children.push_back($1); std::cout << "Array Length" << std::endl; }; 
     | Expression DOT Identifier LPAREN ExpressionList RPAREN { 
         $$ = new Node("Expression", "Call", yylineno); 
         $$->children.push_back($1); 
-        $$->children.push_back(new Node("Expression", "Called_Method", yylineno)); 
+        Node* Called_Method = new Node("Called_Method", "", yylineno);
+        $$->children.push_back(Called_Method);
+        Called_Method->children.push_back($3);
         $$->children.push_back($5); 
         std::cout << "Call" << std::endl; };
     | Expression DOT Identifier LPAREN RPAREN { $$ = new Node("Expression", "Call", yylineno); $$->children.push_back($1); $$->children.push_back($3); std::cout << "Call w/o Expression" << std::endl; };
-    | INTEGER_LITERAL { $$ = new Node("IntegerLiteral", $1, yylineno); std::cout << "Integer Literal" << std::endl; };
+    | INTEGER_LITERAL { $$ = new Node("Expression", "IntegerLiteral", yylineno); std::cout << "Integer Literal" << std::endl; };
     | TRUE { $$ = new Node("Expression", "True", yylineno); std::cout << "True" << std::endl; };
     | FALSE { $$ = new Node("Expression", "False", yylineno); std::cout << "False" << std::endl; };
     | Identifier { $$ = $1; std::cout << "Identifier" << std::endl;}
-    | THIS { $$ = new Node("Expression", "This", yylineno); std::cout << "This" << std::endl; };
+    | THIS { 
+        $$ = new Node("Expression", "This", yylineno); 
+        Node *This = new Node("This", "", yylineno);
+        $$->children.push_back(This);
+        std::cout << "This" << std::endl; };
     | NEW INT LBRACKET Expression RBRACKET { $$ = new Node("Expression", "NewArray", yylineno); $$->children.push_back($4); std::cout << "New Array" << std::endl; };
     | NEW Identifier LPAREN RPAREN { $$ = new Node("Expression", "NewIdentifier", yylineno); $$->children.push_back($2); std::cout << "New Object" << std::endl; };
     | NOT Expression { $$ = new Node("Expression", "Not", yylineno); $$->children.push_back($2); std::cout << "Not" << std::endl;}
@@ -291,5 +300,5 @@ ExpressionList: Expression {
     std::cout << "Expression List Recursion" << std::endl;
 };
 
-Identifier: IDENTIFIER { $$ = new Node("Identifier ", $1, yylineno); std::cout << "Identifier " << $1 << std::endl; };
+Identifier: IDENTIFIER { $$ = new Node("Identifier", $1, yylineno); std::cout << "Identifier " << $1 << std::endl; };
         | MAIN { $$ = new Node("Identifier ", "main", yylineno); std::cout << "Identifier main" << std::endl; };

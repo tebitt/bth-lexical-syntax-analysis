@@ -67,7 +67,7 @@ int main(int argc, char **argv)
 				st.main(root);
 				st.generate_tree();
 
-				cout << "Running semantic checking"<< endl;
+				cout << "Performing Semantic Analysis"<< endl;
 				st.Semantic_Init(root);	
 
 			}

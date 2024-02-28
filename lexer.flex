@@ -17,7 +17,7 @@
 "if"        {if(USE_LEX_ONLY) {printf("IF ");} else {return yy::parser::make_IF(std::to_string(yylineno));}}
 "else"      {if(USE_LEX_ONLY) {printf("ELSE ");} else {return yy::parser::make_ELSE(std::to_string(yylineno));}}
 "while"     {if(USE_LEX_ONLY) {printf("WHILE ");} else {return yy::parser::make_WHILE(std::to_string(yylineno));}}
-"System.out.println" {if(USE_LEX_ONLY) {printf("PRINT ");} else {return yy::parser::make_PRINT(std::to_string(yylineno));}}
+"System.out.println" {if(USE_LEX_ONLY) {printf("PRINT ");} else {return yy::parser::make_PRINT(yytext);}}
 "not"       {if(USE_LEX_ONLY) {printf("NOT ");} else {return yy::parser::make_NOT(std::to_string(yylineno));}}
 "new"       {if(USE_LEX_ONLY) {printf("NEW ");} else {return yy::parser::make_NEW(std::to_string(yylineno));}}
 "int"       {if(USE_LEX_ONLY) {printf("INT ");} else {return yy::parser::make_INT(std::to_string(yylineno));}}
@@ -53,6 +53,7 @@
 
 [ \t\n\r]+              {}
 "//"[^\n]*              {}
+
 .                       { if(!lexical_errors) fprintf(stderr, "Lexical errors found! See the logs below: \n"); fprintf(stderr,"\t@error at line %d. Character %s is not recognized\n", yylineno, yytext); lexical_errors = 1;}
 <<EOF>>                  {return yy::parser::make_END();}
 %%
