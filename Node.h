@@ -21,11 +21,13 @@ public:
     list<Node*> children;
 
     Node(string t, string v, int l) : type(t), value(v), lineno(l) {}
-	Node()
-	{
-		type = "uninitialised";
-		value = "uninitialised";
-	} // Bison needs this.
+    Node() : type("uninitialised"), value("uninitialised") {} // For Bison
+
+    virtual string generateIR() {
+        // Default implementation does nothing and returns an empty string
+        return "";
+    }
+
 
     string getType() { return type; }
     string getValue() { return value; }
@@ -74,6 +76,131 @@ public:
 		}
 	}
 };
+
+class ArithmeticOperationNode : public Node {
+public:
+    ArithmeticOperationNode(string t, string v, int l) : Node(t, v, l) {}
+
+    string generateIR() override {
+        string irCode;
+        // Assume children[0] and children[1] are the operands
+        auto operand1 = children.front()->value;
+        auto operand2 = children.back()->value;
+
+        // Generating IR code for a simple addition operation
+        if (type == "Addition") {
+            irCode = "t1 = " + operand1 + " + " + operand2 + ";";
+        }
+        return irCode;
+    }
+};
+
+class AssignmentNode : public Node {
+public:
+    AssignmentNode(string t, string v, int l) : Node(t, v, l) {}
+
+    string generateIR() override {
+        string irCode;
+        // Assuming the first child is the variable and the second is the expression
+        auto variable = children.front()->value;
+        auto expression = children.back()->generateIR(); // Get IR code for the expression
+
+        irCode = variable + " = " + expression + ";";
+        return irCode;
+    }
+};
+
+// class IfNode : public Node {
+// public:
+//     IfNode(string t, string v, int l) : Node(t, v, l) {}
+
+//     string generateIR() override {
+//         string conditionIR = children.front()->generateIR(); // Assume the condition is the first child
+//         // Example for IfNode where you want the second (true branch) and optionally the third child (false branch)
+//         auto it = children.begin();
+//         std::advance(it, 1); // Move to the second child
+//         string trueBranchIR = (*it)->generateIR();
+
+//         string falseBranchIR = "";
+//         if (std::distance(children.begin(), children.end()) > 2) {
+//             std::advance(it, 1); // Move to the third child, if it exists
+//             falseBranchIR = (*it)->generateIR();
+// }
+
+
+//         // Generate labels for IR
+//         string labelTrue = "labelTrue";
+//         string labelFalse = "labelFalse";
+//         string labelEnd = "labelEnd";
+
+//         string irCode = "if " + conditionIR + " goto " + labelTrue + ";\n"
+//                         "goto " + labelFalse + ";\n"
+//                         + labelTrue + ": " + trueBranchIR + "\n"
+//                         "goto " + labelEnd + ";\n"
+//                         + labelFalse + ": " + (falseBranchIR.empty() ? "" : falseBranchIR + "\n")
+//                         + labelEnd + ": ;";
+
+//         return irCode;
+//     }
+// };
+
+// class WhileNode : public Node {
+// public:
+//     WhileNode(string t, string v, int l) : Node(t, v, l) {}
+
+//     string generateIR() override {
+//         string conditionIR = children.front()->generateIR(); // Condition
+//         string bodyIR = children.back()->generateIR(); // Body
+
+//         // Generate labels for IR
+//         string labelStart = "labelStart";
+//         string labelBody = "labelBody";
+//         string labelEnd = "labelEnd";
+
+//         string irCode = labelStart + ": ;\n"
+//                         "if " + conditionIR + " goto " + labelBody + ";\n"
+//                         "goto " + labelEnd + ";\n"
+//                         + labelBody + ": " + bodyIR + "\n"
+//                         "goto " + labelStart + ";\n"
+//                         + labelEnd + ": ;";
+
+//         return irCode;
+//     }
+// };
+
+// class FunctionCallNode : public Node {
+// public:
+//     FunctionCallNode(string t, string v, int l) : Node(t, v, l) {}
+
+//     string generateIR() override {
+//         string irCode = "call " + value + "(";
+//         for (auto it = children.begin(); it != children.end(); ++it) {
+//             if (it != children.begin()) irCode += ", ";
+//             irCode += (*it)->generateIR(); // Assuming the children generate the IR for arguments
+//         }
+//         irCode += ");";
+
+//         return irCode;
+//     }
+// };
+
+// class FunctionDefinitionNode : public Node {
+// public:
+//     FunctionDefinitionNode(string t, string v, int l) : Node(t, v, l) {}
+
+//     string generateIR() override {
+//         string functionName = value; // Assuming the function name is stored in `value`
+//         string irCode = "func_begin " + functionName + ":\n";
+        
+//         // Generate IR for the function body, assuming the body is the last child
+//         string bodyIR = children.back()->generateIR();
+//         irCode += bodyIR;
+        
+//         irCode += "\nfunc_end " + functionName + ";\n";
+//         return irCode;
+//     }
+// };
+
 
 class Record {
 public:
@@ -154,11 +281,19 @@ public:
     }
 
     void printVariables() const {
-        cout << "Variables for " << name << " class: ";
+        cout << "Variables for " << name << " Class: ";
+        for (const auto& var : variables) {
+            cout << var.second->name << " ";
+        }
+        cout << endl;
     }
 
     void printMethods() const {
-        cout << "Methods for " << name << " class: ";
+        cout << "Methods for " << name << " Class: ";
+        for (const auto& method : methods) {
+            cout << method.second->name << " ";
+        }
+        cout << endl;
     }
 };
 
@@ -266,8 +401,9 @@ public:
     Class* CurrentClass;
     Method* CurrentMethod;
     int lineno, classDepth, methodDepth;
-    string priorRecordType;
-    
+    string priorRecordType, semanticPriorRecordType;
+    int returnLineNo = -1;
+
     SymbolTable() {
         currentScope = new Scope(0, "GoalName", "Goal", "void");
         nextScopeId++;
@@ -281,10 +417,9 @@ public:
         auto child = children.begin();
         char* t = (char*)node->type.c_str();
 
-
-        if ((strcmp(t, "ClassDeclaration") == 0) || (strcmp(t, "MainClassDeclaration") == 0)) { ClassDeclaration(*child); } 
-        else if (strcmp(t, "MethodDeclaration") == 0) { MethodDeclaration(node); }
-        else if (strcmp(t, "VarDeclaration") == 0) { VarDeclaration(*child, node); } 
+        if ((strcmp(t, "ClassDeclaration") == 0) || (strcmp(t, "MainClassDeclaration") == 0)) { ClassDeclaration(*child); priorRecordType = "c"; } 
+        else if (strcmp(t, "MethodDeclaration") == 0) { MethodDeclaration(node); priorRecordType = "m"; }
+        else if (strcmp(t, "VarDeclaration") == 0) { VarDeclaration(*child, node, 0); } 
         if ((strcmp(t, "Expression") == 0) || (strcmp(t, "Statement") == 0)) { 
             ExpressionOrStatement(node); }
 
@@ -295,7 +430,6 @@ public:
     }
 
     void ClassDeclaration(Node* node) {
-        priorRecordType = "c";
         lineno = node->lineno;
         CurrentClass = new Class();
         CurrentClass->setName(node->value);
@@ -307,7 +441,6 @@ public:
         newVariable->name = "this";
         newVariable->setType(currentScope->name);
         AddRecordToCurrentScope(newVariable);
-        CurrentClass->printVariables();
     }
 
 
@@ -326,28 +459,30 @@ public:
         AddNewToScope(CurrentMethod);
         child++;
 
+        int idx = 0;
         if (child != node->children.end()) {
             for (auto i = (*child)->children.begin(); i != (*child)->children.end(); i++) {
                 if ((strcmp(((*child)->type).c_str(),"Return") == 0) || ((strcmp(((*child)->type).c_str(),"VarDeclarationOrStatementList") == 0))) { 
                     break; }
                 lineno = (*i)->lineno;
                 
-                VarDeclaration(*i, *child);
+                VarDeclaration(*i, *child, idx);
         
                 CurrentMethod->parameters.push_back((*i)->value);
                 CurrentMethod->parametersCount++;
                 i++;
+                idx++;
             } 
         } 
     }
 
-    void VarDeclaration(Node* node, Node* parent){
+    void VarDeclaration(Node* node, Node* parent, int idx){
         auto child = parent->children.begin();
         Variable* newVariable = new Variable();
         lineno = node->lineno;
         newVariable->setType(node->value);
-        node++;
-        newVariable->setName(node->value);
+        for (int i = 0; i < 2*idx; i++) { child++; }
+        newVariable->setName((*++child)->value);
         if (strcmp(priorRecordType.c_str(),"m") == 0) {
             CurrentMethod->variables[newVariable->name] = newVariable;
         } else if (strcmp(priorRecordType.c_str(),"c") == 0) {
@@ -376,9 +511,10 @@ public:
     }
 
     void AddRecordToCurrentScope(Record* rec){
+        cout << "Adding record to current scope: " << rec->name << endl;
         if (strcmp((currentScope->findRecord(rec->name)).c_str(),(rec->record).c_str()) != 0 ) {
             currentScope->addRecord(rec);
-        } else {
+        } else if (strcmp((rec->name).c_str(),"") != 0) {
             reportSemanticError("Duplicate record: " + rec->name);
         }
     }
@@ -413,6 +549,7 @@ public:
         int id = node->id;
         lineno = node->lineno;
 
+        // cout << "Type: " << type << ", Value: " << value << ", ID: " << id << ", LineNo: " << lineno << endl;
         if ((strcmp(type.c_str(),"ClassDeclaration") == 0) || (strcmp(type.c_str(),"MainClassDeclaration") == 0)) {
             enterScope(classDepth++);
         } else if (strcmp(type.c_str(),"MethodDeclaration") == 0) {
@@ -425,17 +562,20 @@ public:
                     reportSemanticError("Identifier is not a Class");
                 }
             }
-        } else if (strcmp(type.c_str(),"Return") == 0) { 
-            Semantic_Analysis_Return(*(node->children).begin(), node);
+        } else if (strcmp(type.c_str(),"Identifier") == 0 && strcmp(semanticPriorRecordType.c_str(),"MethodDeclaration") == 0) { 
+            returnLineNo = lineno;
+        } else if (strcmp(type.c_str(),"Return") == 0) {    
+            Semantic_Analysis_Return(*(node->children).begin(), node, returnLineNo);
         } else if (strcmp(type.c_str(),"Statement") == 0) {
             if (strcmp(value.c_str(),"Assign") == 0) { Semantic_Analysis_Assign(*(node->children).begin(), node); }
             else if (strcmp(value.c_str(),"IfElse") == 0) { Semantic_Analysis_IfElse(*(node->children).begin(), node); }
             else if (strcmp(value.c_str(),"If") == 0) { Semantic_Analysis_If(*(node->children).begin(), node); }
             else if (strcmp(value.c_str(),"While") == 0) { Semantic_Analysis_While(*(node->children).begin(), node); }
             else if (strcmp(value.c_str(),"Print") == 0) { Semantic_Analysis_Print(*(node->children).begin(), node); }
-
+        
 
         } for (auto i = node->children.begin(); i != node->children.end(); i++) {
+            semanticPriorRecordType = type;
             Semantic_Analysis(*i);
         }
         if ((strcmp(type.c_str(), "ClassDeclaration") == 0) || (strcmp(type.c_str(), "MainClassDeclaration") == 0))  {
@@ -446,17 +586,11 @@ public:
         }
     }
 
-    void Semantic_Analysis_Return(Node* node, Node* parent) {
+    void Semantic_Analysis_Return(Node* node, Node* parent, int RetLineNo) {
         string type = node->type;
         string value = node->value;
-        string returnType;
-        while (strcmp((parent->type).c_str(), "MethodDeclaration") != 0) {
-            parent++;
-        } 
-        auto child = parent->children.begin();
-
-        returnType = Semantic_Analysis_Expression(node, parent);
-        lineno = (*child)->lineno;
+        string returnType = Semantic_Analysis_Expression(node, parent);
+        lineno = RetLineNo;
 
         if (strcmp(returnType.c_str(),(currentScope->type).c_str()) != 0) {
             if (strcmp(returnType.c_str(),"null") == 0) { return; } 
@@ -763,7 +897,7 @@ public:
         Record* rec;
         rec = currentScope->LookupRecord(name);
         if (strcmp((rec->type).c_str(), "") == 0) { 
-            reportSemanticError("Identifier not found: " + name); 
+            // reportSemanticError("Identifier not found: " + name); 
             return "null"; 
         } else {
             return rec->type;

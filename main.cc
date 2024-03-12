@@ -31,6 +31,21 @@ void yy::parser::error(std::string const &err)
 	}
 }
 
+void generateIRForNode(Node* node) {
+    if (node == nullptr) return;
+
+    // Generate IR for the current node
+    string ir = node->generateIR();
+    if (!ir.empty()) {
+        cout << ir << endl; // Print the IR code or add it to an IR code list
+    }
+
+    // Recurse for children
+    for (auto child : node->children) {
+        generateIRForNode(child);
+    }
+}
+
 int main(int argc, char **argv)
 {
 	// Reads from file if a file name is passed as an argument. Otherwise, reads from stdin.
@@ -69,6 +84,9 @@ int main(int argc, char **argv)
 
 				cout << "Performing Semantic Analysis"<< endl;
 				st.Semantic_Init(root);	
+
+				cout << "Generating IR Code" << endl;
+				generateIRForNode(root);
 
 			}
 			catch (...)
