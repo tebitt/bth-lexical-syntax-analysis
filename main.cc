@@ -1,4 +1,5 @@
 #include <iostream>
+#include "IR.h"
 #include "parser.tab.hh"
 
 extern Node *root;
@@ -32,13 +33,17 @@ void yy::parser::error(std::string const &err)
 }
 
 void generateIRForNode(Node* node) {
-    if (node == nullptr) return;
-
+    if (node == nullptr) {
+		cout << "Node is null" << endl; 
+		return;
+	}
     // Generate IR for the current node
     string ir = node->generateIR();
     if (!ir.empty()) {
         cout << ir << endl; // Print the IR code or add it to an IR code list
-    }
+    } else {
+		cout << "No IR code generated for node." << endl;
+	}
 
     // Recurse for children
     for (auto child : node->children) {
