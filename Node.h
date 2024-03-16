@@ -71,7 +71,7 @@ public:
 			*outStream << "n" << id << " -> n" << (*i)->id << endl;
 		}
 	}
-};
+};  
 
 class Record {
 public:
