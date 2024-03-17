@@ -51,6 +51,8 @@ Goal: MainClass END {
 MainClass: PUBLIC CLASS Identifier LBRACE PUBLIC STATIC ReturnType Identifier LPAREN TypeIdentList RPAREN LBRACE StatementList RBRACE RBRACE {
     $$ = new Node("MainClassDeclaration", "", yylineno);
     $$->children.push_back($3); 
+    Node* Main_Method = new Node("ClassConditional", "", yylineno);
+    $$->children.push_back(Main_Method);
     $$->children.push_back($7);
     $$->children.push_back($8);
     $$->children.push_back($10);
@@ -172,8 +174,7 @@ Expression: Expression PLUS Expression { $$ = new Node("Expression", "Plus", yyl
         Called_Method->children.push_back($3);
         $$->children.push_back($5); 
         std::cout << "Call" << std::endl; };
-    | Expression DOT Identifier LPAREN RPAREN { $$ = new Node("Expression", "Call", yylineno); $$->children.push_back($1); $$->children.push_back($3); std::cout << "Call w/o Expression" << std::endl; };
-    | INTEGER_LITERAL { $$ = new Node("Expression", "IntegerLiteral", yylineno); std::cout << "Integer Literal" << std::endl; };
+    | INTEGER_LITERAL { $$ = new Node("IntegerLiteral", $1, yylineno); std::cout << "Integer Literal" << std::endl; };
     | TRUE { $$ = new Node("Expression", "True", yylineno); std::cout << "True" << std::endl; };
     | FALSE { $$ = new Node("Expression", "False", yylineno); std::cout << "False" << std::endl; };
     | Identifier { $$ = $1; std::cout << "Identifier" << std::endl;}
@@ -298,6 +299,10 @@ ExpressionList: Expression {
     $$ = $1;
     $$->children.push_back($3);
     std::cout << "Expression List Recursion" << std::endl;
+};
+    | {
+    $$ = new Node("ExpressionList", "", yylineno);
+    std::cout << "Empty Expression List" << std::endl;
 };
 
 Identifier: IDENTIFIER { $$ = new Node("Identifier", $1, yylineno); std::cout << "Identifier " << $1 << std::endl; };

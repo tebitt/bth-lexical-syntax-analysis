@@ -518,9 +518,11 @@ public:
         char* c = (char*)type.c_str();
         char* v = (char*)value.c_str();
 
+        cout << "Type: " << type << ", Value: " << value << endl;
+
         if (strcmp(c, "Identifier") == 0){
             return IdentifierReturnType(value);
-        } else if (strcmp(v, "IntegerLiteral") == 0) {
+        } else if (strcmp(c, "IntegerLiteral") == 0) {
             return "Int";
         } else if (strcmp(v, "True") == 0 || strcmp(v, "False") == 0) {
             return "Boolean";
@@ -625,12 +627,11 @@ public:
                 }
             }
 
-            string  childMethod = (*++child)->value;
-            if (strcmp((*child)->type.c_str(),"Called_Method") == 0) {
-                auto child2 = (*child)->children.begin();
-                childMethod = (*child2)->value;
-                child++;
-            }
+        
+            auto child2 = (*++child)->children.begin();
+            string childMethod = (*child2)->value;
+            child++;
+        
             char* c = (char*)childType.c_str();
             if (strcmp(c, "Identifier") != 0) {
                 reportSemanticError("Object called is not an identifier");

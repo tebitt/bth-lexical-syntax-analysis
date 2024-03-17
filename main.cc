@@ -71,7 +71,10 @@ int main(int argc, char **argv)
 				cout << "Performing Semantic Analysis"<< endl;
 				st.Semantic_Init(root);	
 
+				IR ir;
 				cout << "Generating IR Code" << endl;
+				ir.IRInit(root);
+				ir.generate_ir_tree();
 
 			}
 			catch (...)
