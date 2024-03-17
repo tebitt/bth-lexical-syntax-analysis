@@ -34,13 +34,38 @@ class TAC {
     string getRHS() { return rhs; }
     string getResult() { return result; }
 
-    string Format(){
-        if (strcmp(op.c_str(), "=") == 0) return result + " " + op + " " + rhs;
-        else if (lhs.empty() && rhs.empty()) return op + " " + result;
-        else if (strcmp(op.c_str(), "iffalse") == 0) return op + " " + result + " Goto " + rhs;
-        else if (strcmp(op.c_str(), "Goto") == 0) return op + " " + rhs;
-        else if (strcmp(op.c_str(), "new") == 0) return result + " := " + op + " " + lhs + " " + rhs;
-        else return result + " := " + lhs + " " + op + " " + rhs;
+    string FormatText() {
+        if (strcmp(op.c_str(), "=") == 0) return result + " := " + rhs; //Copy
+        else if (strcmp(op.c_str(), "new") == 0) return result + " := " + op + " " + lhs + " " + rhs; //New
+        else if (lhs.empty() && rhs.empty()) return op + " " + result; //Print, Param, Return
+        else if (strcmp(op.c_str(), "Goto") == 0) return op + " " + rhs; //Jump
+        else if (strcmp(op.c_str(), "iffalse") == 0) return op + " " + result + " Goto " + rhs; //ConditionalJump
+        else return result + " := " + lhs + " " + op + " " + rhs; //Expression
+    }
+
+    list<string> FormatByteCode() {
+        unordered_map<string, string> opMap = {{"+", "iadd"}, {"-", "isub"}, {"*", "imul"}, {"/", "idiv"}, {"<", "ilt"}, {">", "igt"}, {"==", "ieq"}, {"&&", "iand"}, {"||", "ior"}, {"!", "inot"}, {"Return", "ireturn"}, {"Print", "print"}};
+        
+        if (strcmp(op.c_str(), "!") == 0) return { LOAD(rhs), opMap[op], "istore " + result};
+        else if (strcmp(op.c_str(), "=") == 0) return { LOAD(rhs), "istore " + result};
+        else if (strcmp(op.c_str(), "Goto") == 0) return {"goto " + rhs};
+        else if (strcmp(op.c_str(), "iffalse") == 0) return { LOAD(result), "iffasle goto " + rhs};
+        else if (strcmp(op.c_str(), "Print") == 0 ||strcmp(op.c_str(), "Return") == 0) return {LOAD(result), opMap[op]};
+        else if (strcmp(op.c_str(), "Call") == 0 ) return {"invokevirtual " + result};
+        else return {LOAD(lhs), LOAD(rhs), opMap[op], "istore " + result};
+        
+    }
+
+    string LOAD(string var){
+        if (strcmp(var.c_str(),"true") == 0 || strcmp(var.c_str(),"false") == 0 || isNum(var)) return "iconst " + var;
+        else return "iload " + var;
+    }
+
+    bool isNum(string var){
+        for (int i = 0; i < var.size(); i++) {
+            if (!isdigit(var[i])) return false;
+        }
+        return true;
     }
 };
 
@@ -53,6 +78,7 @@ public:
     BasicBlock* TrueExit = NULL;
     BasicBlock* FalseExit = NULL;
     bool Entry = false;
+    bool Visited = false;
 
     BasicBlock() : idx(0), block("block_" + to_string(idx)), name(""), Entry(false) {}
 
@@ -62,7 +88,7 @@ public:
 
     void printInstructions() {
         for (auto i = Instructions.begin(); i != Instructions.end(); i++) {
-            cout << (*i)->Format() << endl;
+            cout << (*i)->FormatText() << endl;
         }
     }
 };
@@ -77,7 +103,7 @@ public:
     list<string> BlockNames;
     list<BasicBlock*> Statement;
     list<BasicBlock*> EntryBlocks;
-    string name, lhs, rhs, result;
+    string op, name, lhs, rhs, result;
 
 
     void IRInit(Node* root) {
@@ -88,19 +114,21 @@ public:
         string type = node->type;
         string value = node->value;
         lineno = node->lineno;
+        cout << "Type: " << type << " Value: " << value << endl;
 
         if ((strcmp(type.c_str(),"ClassDeclaration") == 0) || (strcmp(type.c_str(),"MainClassDeclaration") == 0)) {
             auto i = node->children.begin();
             CurrentClass = (*i)->value;
         }
 
-        if (strcmp(type.c_str(),"MethodDeclaration") == 0 || (strcmp(type.c_str(),"MainClassDeclaration") == 0)) {
+        if (strcmp(type.c_str(),"MethodDeclaration") == 0 ) {
             auto i = node->children.begin();
             string Name;
-            if (((*++i)->value).empty()) Name = CurrentClass;
-            else Name = CurrentClass + "." + (*i)->value;
+            i++;
+            CurrentMethod = (*i)->value;
+            if (CurrentMethod.empty()) Name = CurrentClass;
+            else Name = CurrentClass + "." + CurrentMethod;
             BasicBlock* Entry = new BasicBlock(idx++, Name, true);
-            cout << "val: " << (*i)->value << endl;
             Statement.push_back(Entry);
             EntryBlocks.push_back(Entry);
             currentBlock = Entry;
@@ -124,7 +152,7 @@ public:
             }
         }
   
-         if (strcmp(type.c_str(), "MethodDeclaration") == 0  || (strcmp(type.c_str(),"MainClassDeclaration") == 0)) {
+         if (strcmp(type.c_str(), "MethodDeclaration") == 0) {
             string Name;
             if (CurrentMethod.empty()) Name = CurrentClass;
             else Name = CurrentClass + "." + CurrentMethod;
@@ -243,7 +271,9 @@ public:
             name = genName();
             lhs = "";
             rhs = EXP(*i);
-            TAC* in = new TAC(value, "", rhs, name);
+            if (strcmp(value.c_str(), "Not") == 0) op = "!";
+            else op = "length";
+            TAC* in = new TAC(op, "", rhs, name);
             currentBlock->Instructions.push_back(in);
             return name;
         } else if ((strcmp(value.c_str(), "And") == 0) || (strcmp(value.c_str(), "Or") == 0) || (strcmp(value.c_str(), "Plus") == 0) || (strcmp(value.c_str(), "Minus") == 0) || (strcmp(value.c_str(), "Multiply") == 0) || (strcmp(value.c_str(), "Divide") == 0) || (strcmp(value.c_str(), "LessThan") == 0) || (strcmp(value.c_str(), "GreaterThan") == 0) || (strcmp(value.c_str(), "Equal") == 0))  {
@@ -285,7 +315,7 @@ public:
                 currentBlock->Instructions.push_back(in);
             }
             name = genName();
-            TAC* in2 = new TAC("Call"+methodName, "", to_string((*i)->children.size() + 1), name);
+            TAC* in2 = new TAC("Call" + methodName, "", to_string((*i)->children.size() + 1), name);
             return name;
         } else if ((strcmp(value.c_str(), "True") == 0) || (strcmp(value.c_str(), "False") == 0)){
             return value;
@@ -328,7 +358,7 @@ public:
         if (Block->name != "") tree = "[" + BlockName + " : " + Block->name + "]" + "\n.....\n";
         else tree = "[" + BlockName + "]" + "\n.....\n";
 
-        for (auto In = Block->Instructions.begin(); In != Block->Instructions.end(); In++) tree += (*In)->Format() + "\n";
+        for (auto In = Block->Instructions.begin(); In != Block->Instructions.end(); In++) tree += (*In)->FormatText() + "\n";
 
         *outStream << "n" << idx << " [label=\"" << tree << "\"];" << endl;
 
@@ -341,9 +371,47 @@ public:
         }
     }
 
-    void generate_byte_code() {
+    void generateBytecode() {
+        std::ofstream outStream;
+        char *filename = "bytecode.txt";
+        outStream.open(filename);
 
+        for (auto Block = EntryBlocks.begin(); Block != EntryBlocks.end(); Block++) {
+            generateBytecodeContent(&outStream, *Block);
+        }
+        outStream.close();
     }
+    
+    void generateBytecodeContent(std::ofstream *outStream, BasicBlock* Block) {
+        if (Block->Visited) return;
+        Block->Visited = true;
+        if (Block->Entry) {
+            if (!(Block->name.empty())) {
+                *outStream << Block->name << std::endl;
+                FormatByteCode(outStream ,Block);
+            }
+        } else {
+            *outStream << "\t" + Block->block << std::endl;
+            FormatByteCode(outStream, Block);
+        }
+
+        if (Block->TrueExit != NULL) {
+            generateBytecodeContent(outStream, Block->TrueExit);
+        }
+        if (Block->FalseExit != NULL) {
+            generateBytecodeContent(outStream, Block->FalseExit);
+        }
+    }
+    
+    void FormatByteCode(std::ofstream *outStream, BasicBlock* Block) {
+        for (auto In = Block->Instructions.begin(); In != Block->Instructions.end(); In++) {
+            list<string> ByteCode = (*In)->FormatByteCode();
+            for (auto i = ByteCode.begin(); i != ByteCode.end(); i++) {
+                if (Block->Entry) *outStream << "\t" + *i << std::endl;
+                else *outStream << "\t\t" + *i << std::endl;
+            }
+        }
+    }      
 };
 
 #endif

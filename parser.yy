@@ -32,7 +32,7 @@
 
 
 // Type definitions for non-terminals
-%type <Node *> Goal MainClass ClassDeclaration VarDeclaration MethodDeclaration Type Statement Expression Identifier ClassDeclarationList StatementList VarDeclarationList MethodDeclarationList TypeIdentList ExpressionList VarDeclarationOrStatementList Return ReturnType ClassConditional
+%type <Node *> Goal MainClass ClassDeclaration VarDeclaration MethodDeclaration Type Statement Expression Identifier ClassDeclarationList StatementList VarDeclarationList MethodDeclarationList TypeIdentList ExpressionList VarDeclarationOrStatementList Return ReturnType ClassConditional MainClassConditional MainMethodDeclaration
 
 %%
 Goal: MainClass END { 
@@ -48,17 +48,28 @@ Goal: MainClass END {
 };
     
 
-MainClass: PUBLIC CLASS Identifier LBRACE PUBLIC STATIC ReturnType Identifier LPAREN TypeIdentList RPAREN LBRACE StatementList RBRACE RBRACE {
+MainClass: PUBLIC CLASS Identifier LBRACE MainClassConditional RBRACE {
     $$ = new Node("MainClassDeclaration", "", yylineno);
     $$->children.push_back($3); 
-    Node* Main_Method = new Node("ClassConditional", "", yylineno);
-    $$->children.push_back(Main_Method);
-    $$->children.push_back($7);
-    $$->children.push_back($8);
-    $$->children.push_back($10);
-    $$->children.push_back($13);
+    $$->children.push_back($5);
     std::cout << "Main Class" << std::endl;
 };  
+
+MainClassConditional: MainMethodDeclaration {
+    $$ = new Node("ClassConditional", "", yylineno);
+    $$->children.push_back($1);
+    std::cout << "Main Class Conditional" << std::endl;
+};
+
+MainMethodDeclaration: PUBLIC STATIC ReturnType Identifier LPAREN TypeIdentList RPAREN LBRACE StatementList RBRACE {
+    $$ = new Node("MethodDeclaration", "", yylineno);
+    $$->children.push_back($3);
+    $$->children.push_back($4);
+    $$->children.push_back($6);
+    $$->children.push_back($9);
+    std::cout << "Main Method" << std::endl;
+};
+
 
 ClassDeclaration: CLASS Identifier LBRACE ClassConditional RBRACE {
     $$ = new Node("ClassDeclaration", "", yylineno);

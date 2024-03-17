@@ -518,8 +518,6 @@ public:
         char* c = (char*)type.c_str();
         char* v = (char*)value.c_str();
 
-        cout << "Type: " << type << ", Value: " << value << endl;
-
         if (strcmp(c, "Identifier") == 0){
             return IdentifierReturnType(value);
         } else if (strcmp(c, "IntegerLiteral") == 0) {

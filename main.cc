@@ -75,6 +75,7 @@ int main(int argc, char **argv)
 				cout << "Generating IR Code" << endl;
 				ir.IRInit(root);
 				ir.generate_ir_tree();
+				ir.generateBytecode();
 
 			}
 			catch (...)
