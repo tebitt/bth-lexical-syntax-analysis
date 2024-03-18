@@ -151,7 +151,7 @@ Type: INT LBRACKET RBRACKET { $$ = new Node("Type", "IntArray", yylineno); };
     | STRING LBRACKET RBRACKET { $$ = new Node("Type", "StringArray", yylineno); };
 
 Statement: LBRACE RBRACE { std::cout << "Empty Block" << std::endl; };
-    | LBRACE StatementList RBRACE { $$ = new Node("Statement", "Block", yylineno); $$->children.push_back($2); };
+    | LBRACE StatementList RBRACE { $$=$2; std::cout << "Block" << std::endl; };
     | IF LPAREN Expression RPAREN Statement ELSE Statement { $$ = new Node("Statement", "IfElse", yylineno); $$->children.push_back($3); $$->children.push_back($5); $$->children.push_back($7); std::cout << "If else" << std::endl; };
     | IF LPAREN Expression RPAREN Statement { $$ = new Node("Statement", "If", yylineno); $$->children.push_back($3); $$->children.push_back($5); std::cout << "If" << std::endl; };
     | WHILE LPAREN Expression RPAREN Statement { $$ = new Node("Statement", "While", yylineno); $$->children.push_back($3); $$->children.push_back($5); std::cout << "While" << std::endl; };
@@ -211,7 +211,7 @@ ClassDeclarationList: ClassDeclaration {
 };
 
 StatementList: Statement { 
-    $$ = new Node("StatementList", "", yylineno);
+    $$ = new Node("Statement", "StatementList", yylineno);
     $$->children.push_back($1);
     std::cout << "StatementList" << std::endl;
 };

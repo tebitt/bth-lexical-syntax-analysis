@@ -36,24 +36,29 @@ class TAC {
 
     string FormatText() {
         if (strcmp(op.c_str(), "=") == 0) return result + " := " + rhs; //Copy
-        else if (strcmp(op.c_str(), "new") == 0) return result + " := " + op + " " + lhs + " " + rhs; //New
+        // else if (op.c_str(), "temporary_storage") return ""; //Param
+        else if (strcmp(op.c_str(), "New") == 0) return result + " := " + op + " " + lhs + " " + rhs; //New
         else if (lhs.empty() && rhs.empty()) return op + " " + result; //Print, Param, Return
+        else if (strcmp(op.substr(0,5).c_str(), "Call ") == 0) return result + " := " + op + ", " + rhs; //Call
         else if (strcmp(op.c_str(), "Goto") == 0) return op + " " + rhs; //Jump
         else if (strcmp(op.c_str(), "iffalse") == 0) return op + " " + result + " Goto " + rhs; //ConditionalJump
+        else if (strcmp(op.c_str(), "stop") == 0) return "stop"; //Stop
         else return result + " := " + lhs + " " + op + " " + rhs; //Expression
     }
 
     list<string> FormatByteCode() {
         unordered_map<string, string> opMap = {{"+", "iadd"}, {"-", "isub"}, {"*", "imul"}, {"/", "idiv"}, {"<", "ilt"}, {">", "igt"}, {"==", "ieq"}, {"&&", "iand"}, {"||", "ior"}, {"!", "inot"}, {"Return", "ireturn"}, {"Print", "print"}};
         
-        if (strcmp(op.c_str(), "!") == 0) return { LOAD(rhs), opMap[op], "istore " + result};
+        if (strcmp(op.c_str(), "+") == 0 || strcmp(op.c_str(), "-") == 0 || strcmp(op.c_str(), "*") == 0 || strcmp(op.c_str(), "/") == 0 || strcmp(op.c_str(), "<") == 0 || strcmp(op.c_str(), ">") == 0 || strcmp(op.c_str(), "==") == 0 || strcmp(op.c_str(), "&&") == 0 || strcmp(op.c_str(), "||") == 0) return {LOAD(lhs), LOAD(rhs), opMap[op], "istore " + result};
+        else if (strcmp(op.c_str(), "!") == 0) return { LOAD(rhs), opMap[op], "istore " + result};
         else if (strcmp(op.c_str(), "=") == 0) return { LOAD(rhs), "istore " + result};
         else if (strcmp(op.c_str(), "Goto") == 0) return {"goto " + rhs};
         else if (strcmp(op.c_str(), "iffalse") == 0) return { LOAD(result), "iffasle goto " + rhs};
-        else if (strcmp(op.c_str(), "Print") == 0 ||strcmp(op.c_str(), "Return") == 0) return {LOAD(result), opMap[op]};
-        else if (strcmp(op.c_str(), "Call") == 0 ) return {"invokevirtual " + result};
-        else return {LOAD(lhs), LOAD(rhs), opMap[op], "istore " + result};
-        
+        else if (strcmp(op.c_str(), "Print") == 0 ||strcmp(op.c_str(), "Return") == 0) return {opMap[op]};
+        else if (strcmp(op.substr(0,5).c_str(), "Call ") == 0 ) return { LOAD(lhs), "invokevirtual " + op.substr(5, op.size())};
+        else if (strcmp(op.c_str(), "stop") == 0) return {"stop"};
+        else if (strcmp(op.c_str(), "temporary_storage") == 0) return {LOAD(rhs)};
+        else return {};
     }
 
     string LOAD(string var){
@@ -78,6 +83,7 @@ public:
     BasicBlock* TrueExit = NULL;
     BasicBlock* FalseExit = NULL;
     bool Entry = false;
+    bool isExit = false;
     bool Visited = false;
 
     BasicBlock() : idx(0), block("block_" + to_string(idx)), name(""), Entry(false) {}
@@ -104,6 +110,7 @@ public:
     list<BasicBlock*> Statement;
     list<BasicBlock*> EntryBlocks;
     string op, name, lhs, rhs, result;
+    string MainClassName;
 
 
     void IRInit(Node* root) {
@@ -114,11 +121,12 @@ public:
         string type = node->type;
         string value = node->value;
         lineno = node->lineno;
-        cout << "Type: " << type << " Value: " << value << endl;
 
         if ((strcmp(type.c_str(),"ClassDeclaration") == 0) || (strcmp(type.c_str(),"MainClassDeclaration") == 0)) {
             auto i = node->children.begin();
+            if (strcmp(type.c_str(),"MainClassDeclaration") == 0) MainClassName = (*i)->value;
             CurrentClass = (*i)->value;
+            cout << "Main Class: " << MainClassName << " Current Class: " << CurrentClass << endl;
         }
 
         if (strcmp(type.c_str(),"MethodDeclaration") == 0 ) {
@@ -131,6 +139,14 @@ public:
             BasicBlock* Entry = new BasicBlock(idx++, Name, true);
             Statement.push_back(Entry);
             EntryBlocks.push_back(Entry);
+            if (strcmp(((*++i)->type).c_str(), "TypeIdentList") == 0 ) {
+                for (auto param = (*i)->children.begin(); param != (*i)->children.end(); param++) {
+                    string Type = (*param)->value;
+                    string Name = (*++param)->value;
+                    TAC* in = new TAC("temporary_storage", Type, Name, "");
+                    Entry->Instructions.push_back(in);
+                }
+            }
             currentBlock = Entry;
         }  
 
@@ -148,6 +164,7 @@ public:
             EXP(node); 
         } else {
             for (Node* &ch : node->children) { 
+                cout << "Type: " << ch->type << ", Value: " << ch->value << ", ID: " << ch->id << ", Line: " << ch->lineno << endl;
                 generateIR(ch);
             }
         }
@@ -157,11 +174,16 @@ public:
             if (CurrentMethod.empty()) Name = CurrentClass;
             else Name = CurrentClass + "." + CurrentMethod;
             BasicBlock* Exit = new BasicBlock(idx++, "Exit." + Name, false);
+            Exit->isExit = true;
+            cout << "Exit: " << Exit->block << endl;
+            cout << CurrentClass << " " << MainClassName << endl;
+            if (strcmp(CurrentClass.c_str(), MainClassName.c_str()) == 0) {
+                TAC* in = new TAC("stop", "", "", "");
+                Exit->Instructions.push_back(in);
+                cout << "Stop" << endl;
+            }
             Statement.push_back(Exit);
             currentBlock->TrueExit = Exit;
-            for (auto a = Statement.begin(); a != Statement.end(); a++) {
-                (*a)->printInstructions();
-            }
         }
     }
 
@@ -171,7 +193,7 @@ public:
         string name, lhs, rhs, result, cond;
         lineno = node->lineno;
 
-        if (strcmp(type.c_str(), "StatementList") == 0){
+        if (strcmp(value.c_str(), "StatementList") == 0){
             for (auto i = node->children.begin(); i != node->children.end(); i++) {
                 STMT(*i);
             }
@@ -181,6 +203,7 @@ public:
             BasicBlock* TrueExit = new BasicBlock(idx++);
             Statement.push_back(TrueExit);
             BasicBlock* Exit = new BasicBlock(idx++);
+            Exit->isExit = true;
             Statement.push_back(Exit);
             currentBlock->FalseExit = Exit;
             TAC *in = new TAC("iffalse", "", Exit->block, cond);
@@ -202,6 +225,7 @@ public:
             BasicBlock* FalseExit = new BasicBlock(idx++);
             Statement.push_back(FalseExit);
             BasicBlock* Exit = new BasicBlock(idx++);
+            Exit->isExit = true;
             Statement.push_back(Exit);
             currentBlock->FalseExit = FalseExit;
             TAC *in = new TAC("iffalse", "", FalseExit->block, cond);
@@ -223,11 +247,16 @@ public:
         } else if (strcmp(value.c_str(), "While") == 0) {
             auto i = node->children.begin();
             cond = EXP(*i);
+            cout << "Current Block: " << currentBlock->block << endl;
+            // what are inside currentBlock
+            currentBlock->printInstructions();
+            cout <<"End of current block" << endl;
             BasicBlock* Cond = new BasicBlock(idx++);
             Statement.push_back(Cond);
             BasicBlock* Loop = new BasicBlock(idx++);
             Statement.push_back(Loop);
             BasicBlock* Exit = new BasicBlock(idx++);
+            Exit->isExit = true;
             Statement.push_back(Exit);
             currentBlock->TrueExit = Cond;
             TAC *in = new TAC("Goto", "", Cond->block, "");
@@ -266,6 +295,7 @@ public:
         int id = node->id;
         lineno = node->lineno;
 
+        cout << "Type: " << type << " Value: " << value << " ID: " << id << " Line: " << lineno << endl;
         if (strcmp(value.c_str(), "Not") == 0 || strcmp(value.c_str(), "ArrayLength") == 0) { 
             auto i = node->children.begin();
             name = genName();
@@ -306,16 +336,28 @@ public:
             string param = EXP(*i);
             TAC* in = new TAC("param", "", "", param);
             currentBlock->Instructions.push_back(in);
+            string methodName;
+            if (strcmp((*i)->value.c_str(), "NewIdentifier") == 0) methodName = (*(*i)->children.begin())->value; 
+            else string methodName = (*i)->value;
             i++;
-
-            string methodName = EXP(*i++);
+            methodName += "." + (*(*i)->children.begin())->value;
             for (auto param = (*i)->children.begin(); param != (*i)->children.end(); param++) {
                 string arg = EXP(*param);
-                TAC* in = new TAC("param", "", "", arg);
-                currentBlock->Instructions.push_back(in);
-            }
+                // cout << "param t:" << (*param)->type << " v:" << (*param)->value << endl;
+                TAC* in1 = new TAC("param", "", "", arg);
+                currentBlock->Instructions.push_back(in1);
+            } 
+            i++;
+            string Args;
+            for (auto param = (*i)->children.begin(); param != (*i)->children.end(); param++) {
+                Args = EXP(*param);
+                TAC* in2 = new TAC("param", "", "", Args);
+                currentBlock->Instructions.push_back(in2);
+            }  
             name = genName();
-            TAC* in2 = new TAC("Call" + methodName, "", to_string((*i)->children.size() + 1), name);
+            // cout << "Call: " << methodName    << " Args: " << Args << endl;
+            TAC* in3 = new TAC("Call " + methodName, Args, to_string((*i)->children.size() + 1), name);
+            currentBlock->Instructions.push_back(in3);
             return name;
         } else if ((strcmp(value.c_str(), "True") == 0) || (strcmp(value.c_str(), "False") == 0)){
             return value;
@@ -358,8 +400,9 @@ public:
         if (Block->name != "") tree = "[" + BlockName + " : " + Block->name + "]" + "\n.....\n";
         else tree = "[" + BlockName + "]" + "\n.....\n";
 
-        for (auto In = Block->Instructions.begin(); In != Block->Instructions.end(); In++) tree += (*In)->FormatText() + "\n";
-
+        for (auto In = Block->Instructions.begin(); In != Block->Instructions.end(); In++) {
+            if (strcmp((*In)->op.c_str(),"temporary_storage") != 0) tree += (*In)->FormatText() + "\n";
+        }
         *outStream << "n" << idx << " [label=\"" << tree << "\"];" << endl;
 
         if (Block->TrueExit != NULL) {
@@ -385,17 +428,20 @@ public:
     void generateBytecodeContent(std::ofstream *outStream, BasicBlock* Block) {
         if (Block->Visited) return;
         Block->Visited = true;
+        // cout << "Block: " << Block->block << " Name: " << Block->name << " Entry: " << Block->Entry << endl;
         if (Block->Entry) {
             if (!(Block->name.empty())) {
-                *outStream << Block->name << std::endl;
+                *outStream << Block->name + ":" << std::endl;
                 FormatByteCode(outStream ,Block);
             }
+        } else if (!Block->isExit){
+            *outStream << "\t" + Block->block + ":" << std::endl;
+            FormatByteCode(outStream, Block);
         } else {
-            *outStream << "\t" + Block->block << std::endl;
             FormatByteCode(outStream, Block);
         }
 
-        if (Block->TrueExit != NULL) {
+        if (Block->TrueExit != NULL){
             generateBytecodeContent(outStream, Block->TrueExit);
         }
         if (Block->FalseExit != NULL) {
@@ -405,9 +451,11 @@ public:
     
     void FormatByteCode(std::ofstream *outStream, BasicBlock* Block) {
         for (auto In = Block->Instructions.begin(); In != Block->Instructions.end(); In++) {
+            // cout << (*In)->FormatText() << endl;
             list<string> ByteCode = (*In)->FormatByteCode();
             for (auto i = ByteCode.begin(); i != ByteCode.end(); i++) {
                 if (Block->Entry) *outStream << "\t" + *i << std::endl;
+                else if (Block->isExit )*outStream << "\t" + *i << std::endl;
                 else *outStream << "\t\t" + *i << std::endl;
             }
         }
