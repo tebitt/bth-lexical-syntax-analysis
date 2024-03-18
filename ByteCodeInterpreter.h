@@ -99,7 +99,6 @@ private:
             } else if (var == "False") {
                 push(0, true);
             } else {
-                // Determine if we are in a global context or method context
                 auto &variables = activationStack.empty() ? globalVariables : activationStack.back().localVariables;
                 auto it = variables.find(var);
                 if (it != variables.end()) {
@@ -160,27 +159,27 @@ private:
             }
         } else if (opcode == "inot") {
             StackValue value = pop();
-            push(value.value == 0 ? 1 : 0, true); // Result is always boolean
+            push(value.value == 0 ? 1 : 0, true); 
         } else if (opcode == "iand") {
             StackValue a = pop();
             StackValue b = pop();
-            push((a.value != 0 && b.value != 0) ? 1 : 0, true); // Result is boolean
+            push((a.value != 0 && b.value != 0) ? 1 : 0, true); 
         } else if (opcode == "ior") {
             StackValue a = pop();
             StackValue b = pop();
-            push((a.value != 0 || b.value != 0) ? 1 : 0, true); // Result is boolean
+            push((a.value != 0 || b.value != 0) ? 1 : 0, true); 
         } else if (opcode == "igt") {
             StackValue a = pop();
             StackValue b = pop();
-            push(b.value > a.value ? 1 : 0, true); // Comparing b > a, result is boolean
+            push(b.value > a.value ? 1 : 0, true); 
         } else if (opcode == "ilt") {
             StackValue a = pop();
             StackValue b = pop();
-            push(b.value < a.value ? 1 : 0, true); // Comparing b < a, result is boolean
+            push(b.value < a.value ? 1 : 0, true);
         } else if (opcode == "ieq") {
             StackValue a = pop();
             StackValue b = pop();
-            push(b.value == a.value ? 1 : 0, true); // Comparing b == a, result is boolean
+            push(b.value == a.value ? 1 : 0, true);
         } else if (opcode == "goto") {
             string label;
             ss >> label;
@@ -197,7 +196,7 @@ private:
             int methodAddress = methodPointers[methodName];
             currentMethodName = methodName; 
             activationStack.emplace_back(count);
-            count = methodAddress - 1; // Adjust for increment in Run loop
+            count = methodAddress - 1;
         } else if (opcode == "ireturn") {
             if (!activationStack.empty()) {
                 count = activationStack.back().returnAddress;
@@ -232,7 +231,7 @@ public:
             lines.push_back(line);
             if (line.back() == ':') {
                 string methodName = line.substr(0, line.length() - 1);
-                methodPointers[methodName] = lines.size() - 1; // Line numbers start from 0
+                methodPointers[methodName] = lines.size() - 1;
             }
         }
 
@@ -242,19 +241,8 @@ public:
 
     void Run() {
         while (count < lines.size()) {
-            // cout << "\tExecuting: " << lines[count] << endl;
             executeInstruction(lines[count]);
-
-            // Check if the next instruction is the start of another method
-            // int i;
-            // cin >> i;
-            // if (i == 0) {
-            //     count++;
-
             count++;
-            // printStack();
-            // printActivationStack();
-            // printMethodPointers();
         }
     }
 };

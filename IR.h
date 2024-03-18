@@ -256,7 +256,6 @@ public:
         } else if (strcmp(value.c_str(), "While") == 0) {
             auto i = node->children.begin();
             cond = EXP(*i);
-            //Move expressions from current block to Cond
 
             BasicBlock* Cond = new BasicBlock(idx++);
             Statement.push_back(Cond);
@@ -266,7 +265,7 @@ public:
                     Cond->Instructions.push_back(*In);
                 }
             }
-            //erase from current block
+
             for (auto In = Cond->Instructions.begin(); In != Cond->Instructions.end(); In++) {
                 currentBlock->Instructions.remove(*In);
             }
@@ -330,11 +329,7 @@ public:
             auto i = (node->children).begin();
             string lhs = EXP(*i);
             string rhs = EXP(*++i);
-            string name = genName();
-            // if (strcmp(lhs.c_str(), "True") == 0) lhs = "true";
-            // else if (strcmp(lhs.c_str(), "False") == 0) lhs = "false";
-            // if (strcmp(rhs.c_str(), "True") == 0) lhs = "true";
-            // else if (strcmp(rhs.c_str(), "False") == 0) lhs = "false";
+            string name = genName();;
             TAC* in = new TAC(opMap[value], lhs, rhs, name);
             currentBlock->Instructions.push_back(in);
             return name;
