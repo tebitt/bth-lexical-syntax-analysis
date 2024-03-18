@@ -416,7 +416,7 @@ public:
 
     void generateBytecode() {
         std::ofstream outStream;
-        char *filename = "bytecode.txt";
+        char *filename = "bytecode.class";
         outStream.open(filename);
 
         for (auto Block = EntryBlocks.begin(); Block != EntryBlocks.end(); Block++) {
