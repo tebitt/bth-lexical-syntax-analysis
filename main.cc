@@ -1,5 +1,6 @@
 #include <iostream>
 #include "IR.h"
+#include "ByteCodeInterpreter.h"
 #include "parser.tab.hh"
 
 extern Node *root;
@@ -76,6 +77,10 @@ int main(int argc, char **argv)
 				ir.IRInit(root);
 				ir.generate_ir_tree();
 				ir.generateBytecode();
+
+				ByteCodeInterpreter it;
+				cout << "Running Bytecode" << endl;
+				it.Init("bytecode.class");
 
 			}
 			catch (...)

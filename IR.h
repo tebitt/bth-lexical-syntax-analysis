@@ -36,7 +36,7 @@ class TAC {
 
     string FormatText() {
         if (strcmp(op.c_str(), "=") == 0) return result + " := " + rhs; //Copy
-        // else if (op.c_str(), "temporary_storage") return ""; //Param
+        else if (strcmp(op.c_str(), "temporary_storage") == 0) return "";
         else if (strcmp(op.c_str(), "New") == 0) return result + " := " + op + " " + lhs + " " + rhs; //New
         else if (lhs.empty() && rhs.empty()) return op + " " + result; //Print, Param, Return
         else if (strcmp(op.substr(0,5).c_str(), "Call ") == 0) return result + " := " + op + ", " + rhs; //Call
@@ -54,7 +54,7 @@ class TAC {
         else if (strcmp(op.c_str(), "=") == 0) return { LOAD(rhs), "istore " + result};
         else if (strcmp(op.c_str(), "Goto") == 0) return {"goto " + rhs};
         else if (strcmp(op.c_str(), "iffalse") == 0) return { LOAD(result), "iffasle goto " + rhs};
-        else if (strcmp(op.c_str(), "Print") == 0 ||strcmp(op.c_str(), "Return") == 0) return {opMap[op]};
+        else if (strcmp(op.c_str(), "Print") == 0 ||strcmp(op.c_str(), "Return") == 0) return { LOAD(result), opMap[op]};
         else if (strcmp(op.substr(0,5).c_str(), "Call ") == 0 ) return { LOAD(lhs), "invokevirtual " + op.substr(5, op.size())};
         else if (strcmp(op.c_str(), "stop") == 0) return {"stop"};
         else if (strcmp(op.c_str(), "temporary_storage") == 0) return {LOAD(rhs)};
@@ -109,7 +109,6 @@ public:
     list<string> BlockNames;
     list<BasicBlock*> Statement;
     list<BasicBlock*> EntryBlocks;
-    string op, name, lhs, rhs, result;
     string MainClassName;
 
 
@@ -126,7 +125,6 @@ public:
             auto i = node->children.begin();
             if (strcmp(type.c_str(),"MainClassDeclaration") == 0) MainClassName = (*i)->value;
             CurrentClass = (*i)->value;
-            cout << "Main Class: " << MainClassName << " Current Class: " << CurrentClass << endl;
         }
 
         if (strcmp(type.c_str(),"MethodDeclaration") == 0 ) {
@@ -164,7 +162,6 @@ public:
             EXP(node); 
         } else {
             for (Node* &ch : node->children) { 
-                cout << "Type: " << ch->type << ", Value: " << ch->value << ", ID: " << ch->id << ", Line: " << ch->lineno << endl;
                 generateIR(ch);
             }
         }
@@ -175,12 +172,9 @@ public:
             else Name = CurrentClass + "." + CurrentMethod;
             BasicBlock* Exit = new BasicBlock(idx++, "Exit." + Name, false);
             Exit->isExit = true;
-            cout << "Exit: " << Exit->block << endl;
-            cout << CurrentClass << " " << MainClassName << endl;
             if (strcmp(CurrentClass.c_str(), MainClassName.c_str()) == 0) {
                 TAC* in = new TAC("stop", "", "", "");
                 Exit->Instructions.push_back(in);
-                cout << "Stop" << endl;
             }
             Statement.push_back(Exit);
             currentBlock->TrueExit = Exit;
@@ -247,10 +241,7 @@ public:
         } else if (strcmp(value.c_str(), "While") == 0) {
             auto i = node->children.begin();
             cond = EXP(*i);
-            cout << "Current Block: " << currentBlock->block << endl;
             // what are inside currentBlock
-            currentBlock->printInstructions();
-            cout <<"End of current block" << endl;
             BasicBlock* Cond = new BasicBlock(idx++);
             Statement.push_back(Cond);
             BasicBlock* Loop = new BasicBlock(idx++);
@@ -280,7 +271,6 @@ public:
             rhs = EXP(*++i);
             TAC* in = new TAC("=", "", rhs, name);
             currentBlock->Instructions.push_back(in);
-            currentBlock->printInstructions();
         } else if (strcmp(value.c_str(), "Print") == 0) {
             auto i = node->children.begin();
             name = EXP(*i);
@@ -295,12 +285,11 @@ public:
         int id = node->id;
         lineno = node->lineno;
 
-        cout << "Type: " << type << " Value: " << value << " ID: " << id << " Line: " << lineno << endl;
         if (strcmp(value.c_str(), "Not") == 0 || strcmp(value.c_str(), "ArrayLength") == 0) { 
             auto i = node->children.begin();
-            name = genName();
-            lhs = "";
-            rhs = EXP(*i);
+            string op;
+            string rhs = EXP(*i);
+            string name = genName();
             if (strcmp(value.c_str(), "Not") == 0) op = "!";
             else op = "length";
             TAC* in = new TAC(op, "", rhs, name);
@@ -309,26 +298,27 @@ public:
         } else if ((strcmp(value.c_str(), "And") == 0) || (strcmp(value.c_str(), "Or") == 0) || (strcmp(value.c_str(), "Plus") == 0) || (strcmp(value.c_str(), "Minus") == 0) || (strcmp(value.c_str(), "Multiply") == 0) || (strcmp(value.c_str(), "Divide") == 0) || (strcmp(value.c_str(), "LessThan") == 0) || (strcmp(value.c_str(), "GreaterThan") == 0) || (strcmp(value.c_str(), "Equal") == 0))  {
             unordered_map<string, string> opMap = {{"And", "&&"}, {"Or", "||"}, {"Plus", "+"}, {"Minus", "-"}, {"Multiply", "*"}, {"Divide", "/"}, {"LessThan", "<"}, {"GreaterThan", ">"}, {"Equal", "=="}};
             auto i = (node->children).begin();
-            name = genName();
-            lhs = EXP(*i);
-            rhs = EXP(*++i);
+            string lhs = EXP(*i);
+            // cout << "*i: " << (*i)->type << " v:"<< (*i)->value << " name: " << name << " id" << id << endl;
+            string rhs = EXP(*++i);
+            // cout << "*++i: " << (*i)->type << " v:" << (*i)->value << " name: " << name << " id" << id << endl;
+            string name = genName();
+            // cout << name + " := " + lhs + " " + opMap[value] + " " + rhs << ", id: " << id << endl;
             TAC* in = new TAC(opMap[value], lhs, rhs, name);
             currentBlock->Instructions.push_back(in);
-            currentBlock->printInstructions();
             return name;
         } else if (strcmp(value.c_str(), "NewArray") == 0) {
             auto i = node->children.begin();
-            name = genName();
-            rhs = EXP(*i);
+            string rhs = EXP(*i);
+            string name = genName();
             TAC* in = new TAC("NewArray", "IntArray", rhs, name);
             currentBlock->Instructions.push_back(in);
             return name;
         } else if (strcmp(value.c_str(), "NewIdentifier") == 0) {
             auto i = node->children.begin();
-            name = genName();
-            lhs = EXP(*i);
+            string lhs = EXP(*i);
+            string name = genName();
             TAC* in = new TAC("New", lhs, "", name);
-            currentBlock->printInstructions();
             currentBlock->Instructions.push_back(in);
             return name;
         } else if (strcmp(value.c_str(), "Call") == 0) {
@@ -354,7 +344,7 @@ public:
                 TAC* in2 = new TAC("param", "", "", Args);
                 currentBlock->Instructions.push_back(in2);
             }  
-            name = genName();
+            string name = genName();
             // cout << "Call: " << methodName    << " Args: " << Args << endl;
             TAC* in3 = new TAC("Call " + methodName, Args, to_string((*i)->children.size() + 1), name);
             currentBlock->Instructions.push_back(in3);
