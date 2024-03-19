@@ -64,7 +64,7 @@ class TAC {
     }
 
     string LOAD(string var){
-        if (strcmp(var.c_str(),"true") == 0 || strcmp(var.c_str(),"false") == 0 || isNum(var)) return "iconst " + var;
+        if (isNum(var)) return "iconst " + var;
         else return "iload " + var;
     }
 
@@ -255,20 +255,9 @@ public:
             currentBlock = Exit;
         } else if (strcmp(value.c_str(), "While") == 0) {
             auto i = node->children.begin();
-            cond = EXP(*i);
 
             BasicBlock* Cond = new BasicBlock(idx++);
             Statement.push_back(Cond);
-
-            for (auto In = currentBlock->Instructions.begin(); In != currentBlock->Instructions.end(); In++) {
-                if ((*In)->op == "<" || (*In)->op.substr(0,4) == "Goto" || (*In)->op == ">" || (strcmp((*In)->op.c_str(), "==") == 0)  || (*In)->op == "&&" || (*In)->op == "||" || (*In)->op == "!") {
-                    Cond->Instructions.push_back(*In);
-                }
-            }
-
-            for (auto In = Cond->Instructions.begin(); In != Cond->Instructions.end(); In++) {
-                currentBlock->Instructions.remove(*In);
-            }
 
             BasicBlock* Loop = new BasicBlock(idx++);
             Statement.push_back(Loop);
@@ -280,6 +269,7 @@ public:
             currentBlock->Instructions.push_back(in);
 
             currentBlock = Cond;
+            cond = EXP(*i);
             Cond->FalseExit = Exit;
             TAC *in2 = new TAC("iffalse", "", Exit->block, cond);
             currentBlock->Instructions.push_back(in2);
